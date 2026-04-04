@@ -1,0 +1,47 @@
+# .github/workflows/daily_scrape.yml
+#
+# Runs the HawkApply scraper every day at 8 AM EST (13:00 UTC)
+# Uses GitHub Actions free tier (2,000 minutes/month)
+#
+# Setup:
+#   1. Push this repo to GitHub
+#   2. Go to Settings → Secrets → Actions
+#   3. Add secret: DATABASE_URL = your Neon connection string
+#   4. (Optional) Add: ANTHROPIC_API_KEY for Phase 2
+
+name: Daily Job Scrape
+
+on:
+  schedule:
+    # 8 AM EST = 13:00 UTC (Mon-Fri only)
+    - cron: '0 13 * * 1-5'
+  workflow_dispatch:  # Allow manual trigger
+
+jobs:
+  scrape:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run scraper pipeline
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: python main.py
+
+      - name: Print results summary
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: python view_jobs.py --stats

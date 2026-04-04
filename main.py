@@ -52,7 +52,7 @@ def run_pipeline(refresh_h1b: bool = False):
     print(f"   Locations: {', '.join(settings.LOCATIONS)}")
     print(f"   Min salary: ${settings.MIN_SALARY:,}")
 
-    jobs = run_scraper()
+    jobs = run_all_scrapers()
 
     # Step 2: Store in database
     print(f"\n💾 Step 2: Storing {len(jobs)} jobs in Neon PostgreSQL...")

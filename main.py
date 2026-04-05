@@ -25,7 +25,7 @@ from db.models import Job
 from scrapers.job_scraper import run_all_scrapers
 from scrapers.h1b_matcher import match_jobs_with_sponsors, load_or_refresh_sponsors
 from utils.scorer import score_tier
-
+from db.operations import get_connection
 
 def run_pipeline(refresh_h1b: bool = False):
     """Execute the full scraping + matching pipeline."""
@@ -53,6 +53,14 @@ def run_pipeline(refresh_h1b: bool = False):
     print(f"   Min salary: ${settings.MIN_SALARY:,}")
 
     jobs = run_all_scrapers()
+    conn = get_connection()
+
+    # delete old "new" jobs before inserting new ones to avoid duplicates
+    with conn.cursor() as cur:
+        cur.execute("DELETE FROM jobs WHERE status = 'new';")
+        conn.commit()
+    conn.close()
+    print("   🗑️  Cleared old unapplied jobs")
 
     # Step 2: Store in database
     print(f"\n💾 Step 2: Storing {len(jobs)} jobs in Neon PostgreSQL...")

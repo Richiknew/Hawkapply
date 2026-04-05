@@ -25,7 +25,7 @@ from typing import Optional
 from config import settings
 from db.models import Job
 from scrapers.indeed_scraper import detect_sponsorship, parse_salary
-
+from scrapers.career_scraper import scrape_all_career_pages
 
 # ──────────────────────────────────────────────────
 # Source 1: JSearch API (Google for Jobs aggregator)
@@ -64,7 +64,8 @@ def scrape_jsearch(
                     "query": f"{query} in {location}",
                     "page": str(page),
                     "num_pages": "1",
-                    "date_posted": "week",
+                    # "date_posted": "week",
+                    "date_posted": "today",
                     "remote_jobs_only": "false",
                     "country": "us",
                 },
@@ -74,6 +75,9 @@ def scrape_jsearch(
             data = resp.json()
         except Exception as e:
             print(f"  ⚠️  JSearch request failed: {e}")
+            if "429" in str(e):
+                print("  ⏸️  Rate limited — skipping remaining JSearch queries")
+                return jobs  # Return what we have, stop all JSearch
             break
 
         for item in data.get("data", []):
@@ -146,7 +150,8 @@ def scrape_adzuna(
                     "where": location,
                     "salary_min": settings.MIN_SALARY,
                     "sort_by": "date",
-                    "max_days_old": 14,
+                    # "max_days_old": 14,
+                    "max_days_old": 1,
                     "content-type": "application/json",
                 },
                 timeout=15,
@@ -211,7 +216,8 @@ def scrape_linkedin_rss(
         "keywords": query,
         "location": location if not location.isdigit() else "",
         "geoId": location if location.isdigit() else "",
-        "f_TPR": "r604800",  # Past week
+        #"f_TPR": "r604800",  # Past week
+        "f_TPR": "r86400", # Past 24 hours
         "start": 0,
     }
 
@@ -317,7 +323,10 @@ def scrape_remoteok() -> list[Job]:
             title = item.get("position", "").lower()
 
             # Filter for data science related roles
-            ds_keywords = ["data", "scientist", "machine learning", "ml", "analytics", "ai"]
+            ds_keywords = ["data scientist", "data science", "machine learning", "deep learning", "ml engineer", "ai engineer", "applied scientist", "nlp", "computer vision"]
+            ds_tags = ["data", "ml", "machine-learning", "data-science", "ai"]
+            if not (any(kw in title for kw in ds_keywords) or any(t in tags for t in ds_tags)):
+                continue
             location_tag = item.get("location", "").lower()
             if location_tag and "us" not in location_tag and "united states" not in location_tag and "remote" not in location_tag and "worldwide" not in location_tag:
                 continue
@@ -347,7 +356,143 @@ def scrape_remoteok() -> list[Job]:
 
     return jobs
 
+# ──────────────────────────────────────────────────
+# Source 6: Arbeitnow (visa sponsorship filter built in!)
+# ──────────────────────────────────────────────────
 
+def scrape_arbeitnow() -> list[Job]:
+    """Free API, no auth. Has a visa_sponsorship filter!"""
+    jobs = []
+    print("  📡 Arbeitnow: visa sponsorship jobs...")
+    
+    for page in range(1, 4):
+        try:
+            resp = requests.get(
+                "https://www.arbeitnow.com/api/job-board-api",
+                params={"visa_sponsorship": "true", "page": page},
+                timeout=15, headers={"User-Agent": settings.USER_AGENT},
+            )
+            if resp.status_code != 200:
+                break
+            data = resp.json()
+        except Exception as e:
+            print(f"  ⚠️  Arbeitnow failed: {e}")
+            break
+
+        for item in data.get("data", []):
+            title = item.get("title", "")
+            location = item.get("location", "")
+            
+            job = Job(
+                title=title,
+                company=item.get("company_name", "Unknown"),
+                location=location,
+                source="arbeitnow",
+                url=item.get("url", ""),
+                description=item.get("description", "")[:2000],
+                posted_date=datetime.fromtimestamp(item["created_at"]) if item.get("created_at") else None,
+                sponsors_h1b=True,
+            )
+            if job.title:
+                jobs.append(job)
+
+        if not data.get("links", {}).get("next"):
+            break
+        time.sleep(1)
+
+    return jobs
+
+
+# ──────────────────────────────────────────────────
+# Source 7: Remotive (remote DS/ML jobs)
+# ──────────────────────────────────────────────────
+
+def scrape_remotive() -> list[Job]:
+    """Free API, no auth. Good remote ML/DS coverage."""
+    jobs = []
+    print("  📡 Remotive: remote data/ML jobs...")
+
+    for category in ["data", "machine-learning"]:
+        try:
+            resp = requests.get(
+                "https://remotive.com/api/remote-jobs",
+                params={"category": category, "limit": 50},
+                timeout=15, headers={"User-Agent": settings.USER_AGENT},
+            )
+            if resp.status_code != 200:
+                continue
+            data = resp.json()
+        except Exception as e:
+            print(f"  ⚠️  Remotive failed: {e}")
+            continue
+
+        for item in data.get("jobs", []):
+            job = Job(
+                title=item.get("title", ""),
+                company=item.get("company_name", "Unknown"),
+                location=item.get("candidate_required_location", "Remote"),
+                source="remotive",
+                url=item.get("url", ""),
+                description=item.get("description", "")[:2000],
+                salary_min=item.get("salary_min"),
+                salary_max=item.get("salary_max"),
+                posted_date=_parse_date(item.get("publication_date")),
+            )
+            if job.title:
+                jobs.append(job)
+
+        time.sleep(1)
+
+    return jobs
+
+
+# ──────────────────────────────────────────────────
+# Source 8: Jobicy (remote jobs, US/Americas focus)
+# ──────────────────────────────────────────────────
+
+def scrape_jobicy() -> list[Job]:
+    """Free API, no auth. Supports geo and tag filters."""
+    jobs = []
+    print("  📡 Jobicy: remote DS jobs (USA)...")
+
+    for tag in ["data-scientist", "machine-learning", "python"]:
+        try:
+            resp = requests.get(
+                "https://jobicy.com/api/v2/remote-jobs",
+                params={"count": 50, "geo": "usa", "tag": tag},
+                timeout=15, headers={"User-Agent": settings.USER_AGENT},
+            )
+            if resp.status_code != 200:
+                continue
+            data = resp.json()
+        except Exception as e:
+            print(f"  ⚠️  Jobicy failed: {e}")
+            continue
+
+        for item in data.get("jobs", []):
+            sal_min, sal_max = None, None
+            if item.get("annualSalaryMin"):
+                sal_min = int(item["annualSalaryMin"])
+            if item.get("annualSalaryMax"):
+                sal_max = int(item["annualSalaryMax"])
+
+            job = Job(
+                title=item.get("jobTitle", ""),
+                company=item.get("companyName", "Unknown"),
+                location=item.get("jobGeo", "Remote"),
+                source="jobicy",
+                url=item.get("url", ""),
+                description=item.get("jobDescription", "")[:2000],
+                salary_min=sal_min,
+                salary_max=sal_max,
+                posted_date=_parse_date(item.get("pubDate")),
+            )
+            if job.title:
+                jobs.append(job)
+
+        time.sleep(1)
+
+    return jobs
 # ──────────────────────────────────────────────────
 # Utilities
 # ──────────────────────────────────────────────────
@@ -379,15 +524,29 @@ def run_all_scrapers() -> list[Job]:
 
     # Source 1: JSearch (best coverage, needs free RapidAPI key)
     if settings.RAPIDAPI_KEY:
-        for location in settings.LOCATIONS[:4]:  # Limit API calls
-            for role in settings.TARGET_ROLES:
+        # Core roles + domain-specific queries
+        search_queries = list(settings.TARGET_ROLES) + [
+            "data scientist marketing",
+            "data scientist advertising",
+            "data scientist finance",
+            "data scientist logistics",
+            "data scientist supply chain",
+            "data scientist media",
+            "data scientist risk",
+            "ML engineer fintech",
+        ]
+        # Deduplicate and limit to stay in free tier
+        search_queries = list(dict.fromkeys(search_queries))[:8]
+
+        for location in settings.LOCATIONS[:3]: # limit locations to stay in free tier for first 3 locations
+            for query in search_queries:
                 jobs = scrape_jsearch(
-                    query=f"{role} visa sponsorship",
+                    query=query,
                     location=location,
-                    pages=1,  # 1 page per location to stay in free tier
+                    pages=1, # 1 page per location/query to stay within free limits
                 )
                 all_jobs.extend(jobs)
-                print(f"  ✅ JSearch: {len(jobs)} jobs for '{role}' in {location}")
+                print(f"  ✅ JSearch: {len(jobs)} jobs for '{query}' in {location}")
     else:
         print("  ⏭️  Skipping JSearch (set RAPIDAPI_KEY in .env for best results)")
 
@@ -408,20 +567,77 @@ def run_all_scrapers() -> list[Job]:
         "SF Bay Area": "90000084",
         "Seattle": "91000019",
         "Boston": "90000069",
+        "Washington DC": "90000097",
+        "Philadelphia": "90000022",
+        "Atlanta": "90000051",
         "Chicago": "90000084",
-        "Austin": "90000049",
+        "Dallas": "90000049",
+        "Los Angeles": "90000058",
+        "Denver": "90000048",
     }
     for name, geo_id in linkedin_geos.items():
-        jobs = scrape_linkedin_rss(query="data scientist", location=geo_id)
-        all_jobs.extend(jobs)
-        print(f"  ✅ LinkedIn: {len(jobs)} jobs in {name}")
-        time.sleep(settings.REQUEST_DELAY)
+        for role in settings.TARGET_ROLES:
+            jobs = scrape_linkedin_rss(query=role, location=geo_id)
+            all_jobs.extend(jobs)
+            print(f"  ✅ LinkedIn: {len(jobs)} jobs for '{role}' in {name}")
+            time.sleep(settings.REQUEST_DELAY)
 
     # Source 4: RemoteOK (always works, no auth)
     print("\n  🌐 Remote job boards...")
     remote_jobs = scrape_remoteok()
     all_jobs.extend(remote_jobs)
     print(f"  ✅ RemoteOK: {len(remote_jobs)} remote DS jobs")
+    ds_title_words = [
+        "data scien", "machine learn", "ml ", "deep learn",
+        "nlp", "ai research", "ai engineer", "data engineer",
+        "analytics engineer", "mlops", "applied scien",
+        "research scien", "computer vision", "ml ops",
+        "marketing scien", "marketing analy", "ad tech",
+        "risk analy", "quant",
+        "supply chain analy", "logistics analy", "forecast",
+        "media mix", "attribution", "pricing analy",
+    ]
+    
+
+    # Source 5: Direct career pages of H1B sponsors (no API key needed)
+    print("\n  🏢 H1B sponsor career pages...")
+    career_jobs = scrape_all_career_pages()
+    all_jobs.extend(career_jobs)
+    
+    # Source 6: Arbeitnow (has visa sponsorship filter!)
+    arbeitnow_jobs = scrape_arbeitnow()
+    all_jobs.extend(arbeitnow_jobs)
+    print(f"  ✅ Arbeitnow: {len(arbeitnow_jobs)} visa sponsorship jobs")
+
+    # Source 7: Remotive
+    remotive_jobs = scrape_remotive()
+    all_jobs.extend(remotive_jobs)
+    print(f"  ✅ Remotive: {len(remotive_jobs)} remote DS/ML jobs")
+
+    # Source 8: Jobicy
+    jobicy_jobs = scrape_jobicy()
+    all_jobs.extend(jobicy_jobs)
+    print(f"  ✅ Jobicy: {len(jobicy_jobs)} remote DS jobs (USA)")
+
+    # Filter career page jobs to last 7 days (keep jobs with no date)
+    from datetime import timedelta
+    cutoff = datetime.utcnow() - timedelta(days=2)
+    all_jobs = [
+        j for j in all_jobs
+        if j.source != "career_page" or j.posted_date is None or j.posted_date >= cutoff
+    ]
+
+
+    # Title filter + level filter (applies to ALL sources)
+    exclude_levels = ["staff", "director", "principal", "vp ", "vice president", "head of", "chief", "lead", "manager", "senior staff", "distinguished"]
+    exclude_clearance = ["ts/sci", "top secret", "secret clearance", "security clearance", "clearance required", "us citizen", "citizenship required", "public trust"]
+    all_jobs = [
+        j for j in all_jobs
+        if any(kw in j.title.lower() for kw in ds_title_words)
+        and not any(lvl in j.title.lower() for lvl in exclude_levels)
+        and not any(cl in (j.title + " " + j.description).lower() for cl in exclude_clearance)
+    ]
+    print(f"📋 After title filtering: {len(all_jobs)} relevant jobs")
 
     # Deduplicate across all sources
     seen = set()

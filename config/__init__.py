@@ -28,7 +28,11 @@ class Settings:
         loc.strip()
         for loc in os.getenv(
             "LOCATIONS",
-            "New York,San Francisco,Seattle,Boston,Chicago,Austin,Remote"
+            "New York,San Francisco,Seattle,Boston,Chicago,Austin,Remote,"
+            "Washington DC,Philadelphia,Atlanta,Charlotte,Raleigh,Newark,"
+            "Jersey City,Stamford,Pittsburgh,Baltimore,Miami,Tampa,"
+            "Dallas,Houston,Denver,Minneapolis,Detroit,San Jose,"
+            "Los Angeles,San Diego,Portland,Phoenix,Salt Lake City"
         ).split(",")
     ]
 
@@ -44,7 +48,10 @@ class Settings:
         "Chrome/125.0.0.0 Safari/537.36"
     )
     MAX_PAGES_PER_SEARCH: int = 5  # pages per search query
-
+    # Job APIs (free tiers)
+    RAPIDAPI_KEY: str = os.getenv("RAPIDAPI_KEY", "")
+    ADZUNA_APP_ID: str = os.getenv("ADZUNA_APP_ID", "")
+    ADZUNA_APP_KEY: str = os.getenv("ADZUNA_APP_KEY", "")
     # Anthropic (Phase 2)
     ANTHROPIC_API_KEY: str = os.getenv("ANTHROPIC_API_KEY", "")
 

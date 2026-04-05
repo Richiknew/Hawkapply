@@ -44,7 +44,13 @@ def parse_salary(salary_text: str) -> tuple[Optional[int], Optional[int]]:
     amounts = re.findall(r'\$?([\d,]+(?:\.\d+)?)\s*[kK]?', salary_text)
     parsed = []
     for amt in amounts:
-        num = float(amt.replace(",", ""))
+        cleaned = amt.replace(",", "").strip()
+        if not cleaned:
+            continue
+        try:
+            num = float(cleaned)
+        except ValueError:
+            continue
         # Handle "130K" style
         if num < 1000 and ("k" in salary_text.lower()):
             num *= 1000

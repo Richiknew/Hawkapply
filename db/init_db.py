@@ -72,6 +72,23 @@ CREATE TABLE IF NOT EXISTS applications (
 
     updated_at      TIMESTAMP DEFAULT NOW()
 );
+-- Match results: stores JD parsing + resume match scores
+CREATE TABLE IF NOT EXISTS match_results (
+    id              SERIAL PRIMARY KEY,
+    job_hash        VARCHAR(16) REFERENCES jobs(job_hash) ON DELETE CASCADE,
+    match_score     REAL,
+    h1b_score       REAL,
+    combined_score  REAL,
+    fit_tier        VARCHAR(30),
+    parsed_jd       JSONB,
+    strengths       JSONB,
+    gaps            JSONB,
+    cover_letter_angles JSONB,
+    matched_at      TIMESTAMP DEFAULT NOW(),
+    UNIQUE(job_hash)
+);
+
+CREATE INDEX IF NOT EXISTS idx_match_combined ON match_results (combined_score DESC);
 
 -- Indexes for fast queries
 CREATE INDEX IF NOT EXISTS idx_jobs_company     ON jobs (company);

@@ -7,7 +7,7 @@ import psycopg2.extras
 from typing import Optional
 from config import settings
 from db.models import Job, H1BSponsor
-
+import json
 
 def get_connection():
     """Get a database connection."""
@@ -242,5 +242,35 @@ def get_all_sponsors() -> list[dict]:
         with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
             cur.execute("SELECT * FROM h1b_sponsors ORDER BY total_filings DESC;")
             return cur.fetchall()
+    finally:
+        conn.close()
+def upsert_match_result(result: dict):
+    """Save a match result to the database."""
+    conn = get_connection()
+    try:
+        with conn.cursor() as cur:
+            cur.execute("""
+                INSERT INTO match_results (
+                    job_hash, match_score, h1b_score, combined_score,
+                    fit_tier, strengths, gaps, cover_letter_angles
+                )
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+                ON CONFLICT (job_hash) DO UPDATE SET
+                    match_score = EXCLUDED.match_score,
+                    combined_score = EXCLUDED.combined_score,
+                    fit_tier = EXCLUDED.fit_tier,
+                    strengths = EXCLUDED.strengths,
+                    gaps = EXCLUDED.gaps,
+                    cover_letter_angles = EXCLUDED.cover_letter_angles,
+                    matched_at = NOW();
+            """, (
+                result["job_hash"], result["match_score"],
+                result["h1b_score"], result["combined_score"],
+                result["fit_tier"],
+                json.dumps(result.get("strengths", [])),
+                json.dumps(result.get("gaps", [])),
+                json.dumps(result.get("cover_letter_angles", [])),
+            ))
+            conn.commit()
     finally:
         conn.close()

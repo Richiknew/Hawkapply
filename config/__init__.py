@@ -54,6 +54,7 @@ class Settings:
     ADZUNA_APP_KEY: str = os.getenv("ADZUNA_APP_KEY", "")
     # Anthropic (Phase 2)
     ANTHROPIC_API_KEY: str = os.getenv("ANTHROPIC_API_KEY", "")
+    OPENAI_API_KEY: str = os.getenv("OPENAI_API_KEY", "")
 
     # Paths
     PROJECT_ROOT: Path = Path(__file__).resolve().parent.parent

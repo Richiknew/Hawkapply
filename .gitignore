@@ -8,3 +8,9 @@ __pycache__/
 
 # Mac junk
 .DS_Store
+data/candidate_profile.json
+data/rlhf_feedback.json
+Resume/
+.env
+__pycache__/
+*.pyc

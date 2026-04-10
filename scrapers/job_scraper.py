@@ -299,7 +299,45 @@ def _scrape_linkedin_rss_alt(query: str) -> list[Job]:
 
     return jobs
 
-
+def enrich_missing_descriptions(jobs: list[Job]) -> list[Job]:
+    """Fetch full JD for jobs with empty descriptions."""
+    from bs4 import BeautifulSoup
+    
+    # empty = [j for j in jobs if not j.description.strip()]
+    empty = [j for j in jobs if not (j.description or "").strip()]
+    print(f"\n  📥 Enriching {len(empty)} jobs with missing descriptions...")
+    
+    for i, job in enumerate(empty):
+        if not job.url:
+            continue
+        try:
+            resp = requests.get(job.url, timeout=10,
+                               headers={"User-Agent": settings.USER_AGENT})
+            if resp.status_code != 200:
+                continue
+            soup = BeautifulSoup(resp.text, "lxml")
+            
+            # LinkedIn public job pages
+            desc_el = (
+                soup.select_one("div.description__text") or
+                soup.select_one("div.show-more-less-html__markup") or
+                soup.select_one("div[class*='description']") or
+                soup.select_one("section[class*='description']")
+            )
+            if desc_el:
+                job.description = desc_el.get_text(separator=" ", strip=True)[:2000]
+                
+        except Exception:
+            continue
+        
+        time.sleep(1)  # Be polite
+        
+        if (i + 1) % 10 == 0:
+            print(f"    Enriched {i+1}/{len(empty)}...")
+    
+    filled = len([j for j in empty if j.description.strip()])
+    print(f"  ✅ Filled {filled}/{len(empty)} missing descriptions")
+    return jobs
 # ──────────────────────────────────────────────────
 # Source 4: RemoteOK API (no auth, remote DS jobs)
 # ──────────────────────────────────────────────────
@@ -628,14 +666,57 @@ def run_all_scrapers() -> list[Job]:
     ]
 
 
+    all_jobs = enrich_missing_descriptions(all_jobs)
     # Title filter + level filter (applies to ALL sources)
-    exclude_levels = ["staff", "director", "principal", "vp ", "vice president", "head of", "chief", "lead", "manager", "senior staff", "distinguished"]
-    exclude_clearance = ["ts/sci", "top secret", "secret clearance", "security clearance", "clearance required", "us citizen", "citizenship required", "public trust"]
+    # exclude_levels = ["staff", "director", "principal", "vp ", "vice president", "head of", "chief", "lead", "manager", "senior staff", "distinguished", "intern", "phd", "ph.d", "doctorate", "postdoc", "fellow"]
+    # exclude_clearance = ["ts/sci", "top secret", "secret clearance", "security clearance", "clearance required", "us citizen", "citizenship required", "public trust"]
+    # all_jobs = [
+    #     j for j in all_jobs
+    #     if any(kw in j.title.lower() for kw in ds_title_words)
+    #     and not any(lvl in j.title.lower() for lvl in exclude_levels)
+    #     and not any(cl in (j.title + " " + j.description).lower() for cl in exclude_clearance)
+    # ]
+    exclude_title = [
+        "staff", "director", "principal", "vp ", "vice president",
+        "head of", "chief", "lead", "manager", "senior staff",
+        "distinguished", "intern", "phd", "ph.d", "doctorate",
+        "postdoc", "fellow", "co-op", "apprentice",
+    ]
+    exclude_description = [
+        # Clearance
+        "ts/sci", "top secret", "secret clearance", "security clearance",
+        "clearance required", "public trust", "polygraph", "poly required",
+        "sci clearance", "active clearance", "dod clearance",
+        # Citizenship
+        "us citizen", "u.s. citizen", "citizenship required",
+        "must be a citizen", "citizens only", "permanent resident only",
+        "green card required", "no sponsorship", "not sponsor",
+        "cannot sponsor", "will not sponsor", "unable to sponsor",
+        "without sponsorship", "no visa", "no h1b", "no h-1b",
+        # PhD/Intern
+        "phd required", "ph.d. required", "doctoral degree required",
+        "internship program", "intern position", "summer intern",
+        "new grad program", "co-op program",
+        # # Too senior
+        # "10+ years", "12+ years", "15+ years", "8+ years of experience",
+        # "10 years of experience", "12 years of experience",
+        # Government/defense only
+        "government contractor only", "federal employee",
+        "military experience required",
+    ]
+    def _too_senior(text: str) -> bool:
+        """Check if JD requires 7+ years of experience."""
+        matches = re.findall(r'(\d+)\+?\s*(?:years|yrs)', text.lower())
+        for m in matches:
+            if int(m) >= 7:
+                return True
+        return False
     all_jobs = [
         j for j in all_jobs
         if any(kw in j.title.lower() for kw in ds_title_words)
-        and not any(lvl in j.title.lower() for lvl in exclude_levels)
-        and not any(cl in (j.title + " " + j.description).lower() for cl in exclude_clearance)
+        and not any(lvl in j.title.lower() for lvl in exclude_title)
+        and not any(ex in (j.title + " " + j.description).lower() for ex in exclude_description)
+        and not _too_senior(j.title + " " + j.description)
     ]
     print(f"📋 After title filtering: {len(all_jobs)} relevant jobs")
 

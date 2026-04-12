@@ -50,7 +50,7 @@ def review_interactive(limit: int = 50):
         print(f"  [{i+1}/{len(rows)}] Score: {row.get('combined_score', 0)}")
         print(f"  📋 {row['title']}")
         print(f"  🏢 {row['company']} — 📍 {row['location']}")
-        print(f"  🔗 {row['url'][:80]}")
+        print(f"  🔗 {row['url']}")
 
         strengths = json.loads(row.get('strengths', '[]')) if isinstance(row.get('strengths'), str) else row.get('strengths', [])
         gaps = json.loads(row.get('gaps', '[]')) if isinstance(row.get('gaps'), str) else row.get('gaps', [])

@@ -4,6 +4,7 @@ Database operations — insert, query, update jobs and sponsors.
 
 import psycopg2
 import psycopg2.extras
+from datetime import datetime, timedelta
 from typing import Optional
 from config import settings
 from db.models import Job, H1BSponsor
@@ -76,6 +77,107 @@ def upsert_jobs_batch(jobs: list[Job]) -> int:
     finally:
         conn.close()
     return inserted
+
+
+def replace_new_jobs_batch(jobs: list[Job]) -> int:
+    """
+    Replace the current `new` queue with a fresh scrape.
+    To avoid wiping the queue on a bad/empty scrape, deletion only happens when
+    there is at least one incoming job to insert.
+    Returns count of newly inserted rows.
+    """
+    if not jobs:
+        return 0
+
+    conn = get_connection()
+    inserted = 0
+    try:
+        with conn.cursor() as cur:
+            cur.execute("DELETE FROM jobs WHERE status = 'new';")
+
+            for job in jobs:
+                cur.execute("""
+                    INSERT INTO jobs (
+                        job_hash, title, company, location, source, url,
+                        description, salary_min, salary_max, posted_date, scraped_at
+                    )
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                    ON CONFLICT (job_hash) DO NOTHING
+                    RETURNING id;
+                """, (
+                    job.job_hash, job.title, job.company, job.location,
+                    job.source, job.url, job.description,
+                    job.salary_min, job.salary_max,
+                    job.posted_date, job.scraped_at,
+                ))
+                if cur.fetchone():
+                    inserted += 1
+
+            conn.commit()
+    finally:
+        conn.close()
+
+    return inserted
+
+
+def apply_pipeline_filters_to_new_jobs(
+    *,
+    min_salary: int,
+    posted_within_days: int,
+    require_sponsorship: bool,
+    min_h1b_filings: int,
+) -> int:
+    """
+    Remove `new` jobs that do not meet the active pipeline filters.
+    Returns the remaining count after pruning.
+    """
+    conn = get_connection()
+    try:
+        with conn.cursor() as cur:
+            if posted_within_days > 0:
+                cutoff_date = datetime.now().date() - timedelta(days=posted_within_days - 1)
+                cur.execute(
+                    """
+                    DELETE FROM jobs
+                    WHERE status = 'new'
+                      AND (
+                        posted_date IS NULL
+                        OR posted_date::date < %s
+                      );
+                    """,
+                    (cutoff_date,),
+                )
+
+            if require_sponsorship:
+                cur.execute(
+                    """
+                    DELETE FROM jobs
+                    WHERE status = 'new'
+                      AND (
+                        COALESCE(sponsors_h1b, FALSE) = FALSE
+                        OR COALESCE(h1b_filings, 0) < %s
+                      );
+                    """,
+                    (min_h1b_filings,),
+                )
+
+            if min_salary > 0:
+                cur.execute(
+                    """
+                    DELETE FROM jobs
+                    WHERE status = 'new'
+                      AND COALESCE(salary_min, salary_max, h1b_avg_salary) IS NOT NULL
+                      AND COALESCE(salary_min, salary_max, h1b_avg_salary) < %s;
+                    """,
+                    (min_salary,),
+                )
+
+            cur.execute("SELECT COUNT(*) FROM jobs WHERE status = 'new';")
+            remaining = int(cur.fetchone()[0])
+            conn.commit()
+            return remaining
+    finally:
+        conn.close()
 
 
 def get_jobs(

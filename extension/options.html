@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>HawkApply Settings</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      font-size: 14px;
+      background: #f8fafc;
+      color: #1e293b;
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      padding: 48px 16px;
+    }
+
+    .container {
+      width: 100%;
+      max-width: 480px;
+    }
+
+    .header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 32px;
+    }
+
+    .header-logo { font-size: 28px; }
+    .header-title { font-size: 22px; font-weight: 700; }
+    .header-sub { font-size: 13px; color: #64748b; }
+
+    .card {
+      background: #fff;
+      border: 1px solid #e2e8f0;
+      border-radius: 12px;
+      padding: 24px;
+      margin-bottom: 16px;
+    }
+
+    .card-title {
+      font-size: 13px;
+      font-weight: 600;
+      color: #64748b;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 16px;
+    }
+
+    .field { margin-bottom: 16px; }
+    .field:last-child { margin-bottom: 0; }
+
+    label {
+      display: block;
+      font-size: 13px;
+      font-weight: 500;
+      margin-bottom: 5px;
+    }
+
+    input[type="text"],
+    input[type="password"] {
+      width: 100%;
+      padding: 8px 12px;
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      font-size: 13px;
+      font-family: inherit;
+      color: #1e293b;
+      background: #f8fafc;
+      outline: none;
+      transition: border-color 0.15s;
+    }
+
+    input:focus { border-color: #6366f1; background: #fff; }
+
+    .hint {
+      font-size: 11px;
+      color: #94a3b8;
+      margin-top: 4px;
+    }
+
+    .actions {
+      display: flex;
+      gap: 8px;
+      margin-top: 24px;
+    }
+
+    .btn {
+      padding: 9px 20px;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      border: none;
+      transition: opacity 0.15s;
+    }
+
+    .btn:hover { opacity: 0.85; }
+    .btn-primary { background: #6366f1; color: #fff; }
+    .btn-secondary { background: #f1f5f9; color: #475569; border: 1px solid #e2e8f0; }
+
+    .status {
+      margin-top: 12px;
+      font-size: 12px;
+      padding: 8px 12px;
+      border-radius: 8px;
+      display: none;
+    }
+
+    .status-success { background: #f0fdf4; color: #166534; border: 1px solid #bbf7d0; display: block; }
+    .status-error   { background: #fef2f2; color: #991b1b; border: 1px solid #fecaca; display: block; }
+
+    .test-btn {
+      font-size: 12px;
+      padding: 5px 12px;
+      border-radius: 6px;
+      background: #f1f5f9;
+      border: 1px solid #e2e8f0;
+      cursor: pointer;
+      color: #475569;
+    }
+
+    .test-result {
+      font-size: 11px;
+      margin-top: 6px;
+      color: #64748b;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <span class="header-logo">🦅</span>
+      <div>
+        <div class="header-title">HawkApply Settings</div>
+        <div class="header-sub">Configure your API connection</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">API Connection</div>
+
+      <div class="field">
+        <label for="api-url">API URL</label>
+        <input type="text" id="api-url" placeholder="http://localhost:8000" />
+        <p class="hint">The URL where your HawkApply FastAPI server is running.</p>
+      </div>
+
+      <div class="field">
+        <label for="api-key">API Key</label>
+        <input type="password" id="api-key" placeholder="Your X-API-Key value" />
+        <p class="hint">Found in your <code>.env</code> file as <code>API_KEY</code>.</p>
+      </div>
+
+      <div class="field" style="display:flex;align-items:center;gap:10px">
+        <button class="test-btn" id="test-btn">Test Connection</button>
+        <span class="test-result" id="test-result"></span>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Dashboard</div>
+      <div class="field">
+        <label for="dashboard-url">Dashboard URL</label>
+        <input type="text" id="dashboard-url" placeholder="http://localhost:3000" />
+        <p class="hint">The URL of your Next.js dashboard (used by the "Open Dashboard" button).</p>
+      </div>
+    </div>
+
+    <div class="actions">
+      <button class="btn btn-primary" id="save-btn">Save Settings</button>
+      <button class="btn btn-secondary" id="reset-btn">Reset to Defaults</button>
+    </div>
+
+    <div class="status" id="status"></div>
+  </div>
+
+  <script src="options.js"></script>
+</body>
+</html>

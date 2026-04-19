@@ -20,12 +20,73 @@ import time
 import json
 import requests
 import xml.etree.ElementTree as ET
-from datetime import datetime
-from typing import Optional
+from datetime import datetime, timedelta
+from typing import Callable, Optional
 from config import settings
 from db.models import Job
 from scrapers.indeed_scraper import detect_sponsorship, parse_salary
 from scrapers.career_scraper import scrape_all_career_pages
+
+
+def _is_us_remote(location: str) -> bool:
+    """Return True if the location is US-based, Remote, or Worldwide (acceptable for Shreya).
+    Returns False for clearly non-US-only locations (India, Europe, APAC, etc.)."""
+    if not location:
+        return True  # no location = assume remote
+    loc = location.lower()
+    reject = [
+        "india", "bangalore", "bengaluru", "mumbai", "delhi", "hyderabad", "pune", "chennai",
+        "china", "shenzhen", "guangzhou", "beijing", "shanghai",
+        "canada", "toronto", "vancouver", "montreal",
+        "united kingdom", "london", "germany", "berlin", "france", "paris",
+        "netherlands", "amsterdam", "australia", "sydney", "melbourne",
+        "singapore", "hong kong", "japan", "tokyo", "brazil", "argentina",
+        "spain", "madrid", "italy", "milan", "poland", "warsaw", "czech",
+        "romania", "europe only", "apac", "latam",
+    ]
+    if any(r in loc for r in reject):
+        return False
+
+    # Check US/remote signals first — these always win
+    accept = [
+        "united states", "usa", "u.s.", "us only", "us-based", "us remote",
+        "remote", "worldwide", "anywhere", "global",
+        "new york", "san francisco", "seattle", "boston", "chicago",
+        "austin", "los angeles", "denver", "washington", "atlanta",
+        ", ny", ", ca", ", wa", ", ma", ", il", ", tx", ", co",
+        ", ga", ", pa", ", va", ", md", ", nc", ", nj", ", fl",
+    ]
+    if any(a in loc for a in accept):
+        return True
+    return False
+
+
+def _date_window_days() -> int:
+    try:
+        days = int(settings.POSTED_WITHIN_DAYS or 2)
+    except (TypeError, ValueError):
+        return 2
+    return min(max(days, 1), 7)
+
+
+def _jsearch_date_posted_param() -> Optional[str]:
+    days = _date_window_days()
+    if days <= 1:
+        return "today"
+    return "week"
+
+
+def _linkedin_time_range_param() -> Optional[str]:
+    days = _date_window_days()
+    return f"r{days * 86400}"
+
+
+def _is_within_posted_window(posted_date: Optional[datetime]) -> bool:
+    days = _date_window_days()
+    if not posted_date:
+        return False
+    cutoff_date = datetime.now().date() - timedelta(days=days - 1)
+    return posted_date.date() >= cutoff_date
 
 # ──────────────────────────────────────────────────
 # Source 1: JSearch API (Google for Jobs aggregator)
@@ -64,10 +125,13 @@ def scrape_jsearch(
                     "query": f"{query} in {location}",
                     "page": str(page),
                     "num_pages": "1",
-                    # "date_posted": "week",
-                    "date_posted": "today",
                     "remote_jobs_only": "false",
                     "country": "us",
+                    **(
+                        {"date_posted": _jsearch_date_posted_param()}
+                        if _jsearch_date_posted_param()
+                        else {}
+                    ),
                 },
                 timeout=15,
             )
@@ -150,8 +214,11 @@ def scrape_adzuna(
                     "where": location,
                     "salary_min": settings.MIN_SALARY,
                     "sort_by": "date",
-                    # "max_days_old": 14,
-                    "max_days_old": 1,
+                    **(
+                        {"max_days_old": _date_window_days()}
+                        if _date_window_days() > 0
+                        else {}
+                    ),
                     "content-type": "application/json",
                 },
                 timeout=15,
@@ -216,9 +283,12 @@ def scrape_linkedin_rss(
         "keywords": query,
         "location": location if not location.isdigit() else "",
         "geoId": location if location.isdigit() else "",
-        #"f_TPR": "r604800",  # Past week
-        "f_TPR": "r86400", # Past 24 hours
         "start": 0,
+        **(
+            {"f_TPR": _linkedin_time_range_param()}
+            if _linkedin_time_range_param()
+            else {}
+        ),
     }
 
     print(f"  📡 LinkedIn RSS: '{query}'...")
@@ -243,16 +313,25 @@ def scrape_linkedin_rss(
             company_el = card.select_one("h4.base-search-card__subtitle")
             location_el = card.select_one("span.job-search-card__location")
             link_el = card.select_one("a.base-card__full-link")
+            date_el = card.select_one("time")
 
             if not title_el:
                 continue
 
+            location_text = location_el.get_text(strip=True) if location_el else "Unknown"
+            if not _is_us_remote(location_text):
+                continue
+            posted_date = _parse_date(date_el.get("datetime")) if date_el else None
+            if _linkedin_time_range_param() and posted_date is None:
+                posted_date = datetime.utcnow()
+
             job = Job(
                 title=title_el.get_text(strip=True),
                 company=company_el.get_text(strip=True) if company_el else "Unknown",
-                location=location_el.get_text(strip=True) if location_el else "Unknown",
+                location=location_text,
                 source="linkedin",
                 url=link_el["href"] if link_el and link_el.get("href") else "",
+                posted_date=posted_date,
             )
             jobs.append(job)
 
@@ -272,7 +351,11 @@ def _scrape_linkedin_rss_alt(query: str) -> list[Job]:
             params={
                 "keywords": query,
                 "location": "United States",
-                "f_TPR": "r604800",
+                **(
+                    {"f_TPR": _linkedin_time_range_param()}
+                    if _linkedin_time_range_param()
+                    else {}
+                ),
             },
             headers={"User-Agent": settings.USER_AGENT},
             timeout=15,
@@ -285,14 +368,22 @@ def _scrape_linkedin_rss_alt(query: str) -> list[Job]:
                 company_el = card.select_one("h4")
                 loc_el = card.select_one("span.job-search-card__location")
                 link_el = card.select_one("a")
+                date_el = card.select_one("time")
 
                 if title_el:
+                    location_text = loc_el.get_text(strip=True) if loc_el else "US"
+                    if not _is_us_remote(location_text):
+                        continue
+                    posted_date = _parse_date(date_el.get("datetime")) if date_el else None
+                    if _linkedin_time_range_param() and posted_date is None:
+                        posted_date = datetime.utcnow()
                     jobs.append(Job(
                         title=title_el.get_text(strip=True),
                         company=company_el.get_text(strip=True) if company_el else "Unknown",
-                        location=loc_el.get_text(strip=True) if loc_el else "US",
+                        location=location_text,
                         source="linkedin",
                         url=link_el["href"] if link_el else "",
+                        posted_date=posted_date,
                     ))
     except Exception as e:
         print(f"  ⚠️  LinkedIn fallback also failed: {e}")
@@ -420,7 +511,13 @@ def scrape_arbeitnow() -> list[Job]:
         for item in data.get("data", []):
             title = item.get("title", "")
             location = item.get("location", "")
-            
+            # Arbeitnow is a German board — only keep US/Remote entries
+            if not _is_us_remote(location):
+                continue
+            ds_keywords = ["data scientist", "data science", "machine learning", "ml engineer",
+                           "ai engineer", "applied scientist", "nlp", "data analyst", "data engineer"]
+            if not any(kw in title.lower() for kw in ds_keywords):
+                continue
             job = Job(
                 title=title,
                 company=item.get("company_name", "Unknown"),
@@ -465,10 +562,14 @@ def scrape_remotive() -> list[Job]:
             continue
 
         for item in data.get("jobs", []):
+            loc = item.get("candidate_required_location", "Remote")
+            # Only keep US, worldwide, or truly remote (no country specified)
+            if not _is_us_remote(loc):
+                continue
             job = Job(
                 title=item.get("title", ""),
                 company=item.get("company_name", "Unknown"),
-                location=item.get("candidate_required_location", "Remote"),
+                location=loc,
                 source="remotive",
                 url=item.get("url", ""),
                 description=item.get("description", "")[:2000],
@@ -556,9 +657,19 @@ def _parse_date(date_str: Optional[str]) -> Optional[datetime]:
 # Main orchestrator
 # ──────────────────────────────────────────────────
 
-def run_all_scrapers() -> list[Job]:
+ProgressCallback = Callable[[str, int], None]
+
+
+def _emit_progress(progress_cb: Optional[ProgressCallback], message: str, total_jobs: int) -> None:
+    if progress_cb:
+        progress_cb(message, total_jobs)
+
+
+def run_all_scrapers(progress_cb: Optional[ProgressCallback] = None) -> list[Job]:
     """Run all available scrapers and combine + deduplicate results."""
     all_jobs: list[Job] = []
+
+    _emit_progress(progress_cb, "Starting job scrape", 0)
 
     # Source 1: JSearch (best coverage, needs free RapidAPI key)
     if settings.RAPIDAPI_KEY:
@@ -585,8 +696,14 @@ def run_all_scrapers() -> list[Job]:
                 )
                 all_jobs.extend(jobs)
                 print(f"  ✅ JSearch: {len(jobs)} jobs for '{query}' in {location}")
+                _emit_progress(
+                    progress_cb,
+                    f"Scraping JSearch: {query} in {location}",
+                    len(all_jobs),
+                )
     else:
         print("  ⏭️  Skipping JSearch (set RAPIDAPI_KEY in .env for best results)")
+        _emit_progress(progress_cb, "Skipping JSearch (no RapidAPI key)", len(all_jobs))
 
     # Source 2: Adzuna
     if settings.ADZUNA_APP_ID:
@@ -594,8 +711,14 @@ def run_all_scrapers() -> list[Job]:
             jobs = scrape_adzuna(query="data scientist", location=location, pages=1)
             all_jobs.extend(jobs)
             print(f"  ✅ Adzuna: {len(jobs)} jobs in {location}")
+            _emit_progress(
+                progress_cb,
+                f"Scraping Adzuna: data scientist in {location}",
+                len(all_jobs),
+            )
     else:
         print("  ⏭️  Skipping Adzuna (set ADZUNA_APP_ID & ADZUNA_APP_KEY in .env)")
+        _emit_progress(progress_cb, "Skipping Adzuna (no API credentials)", len(all_jobs))
 
     # Source 3: LinkedIn RSS (always works, no auth)
     print("\n  🔗 LinkedIn public feeds...")
@@ -618,6 +741,11 @@ def run_all_scrapers() -> list[Job]:
             jobs = scrape_linkedin_rss(query=role, location=geo_id)
             all_jobs.extend(jobs)
             print(f"  ✅ LinkedIn: {len(jobs)} jobs for '{role}' in {name}")
+            _emit_progress(
+                progress_cb,
+                f"Scraping LinkedIn: {role} in {name}",
+                len(all_jobs),
+            )
             time.sleep(settings.REQUEST_DELAY)
 
     # Source 4: RemoteOK (always works, no auth)
@@ -625,6 +753,7 @@ def run_all_scrapers() -> list[Job]:
     remote_jobs = scrape_remoteok()
     all_jobs.extend(remote_jobs)
     print(f"  ✅ RemoteOK: {len(remote_jobs)} remote DS jobs")
+    _emit_progress(progress_cb, "Scraping RemoteOK", len(all_jobs))
     ds_title_words = [
         "data scien", "machine learn", "ml ", "deep learn",
         "nlp", "ai research", "ai engineer", "data engineer",
@@ -641,32 +770,37 @@ def run_all_scrapers() -> list[Job]:
     print("\n  🏢 H1B sponsor career pages...")
     career_jobs = scrape_all_career_pages()
     all_jobs.extend(career_jobs)
+    _emit_progress(progress_cb, "Scraping H1B sponsor career pages", len(all_jobs))
     
     # Source 6: Arbeitnow (has visa sponsorship filter!)
     arbeitnow_jobs = scrape_arbeitnow()
     all_jobs.extend(arbeitnow_jobs)
     print(f"  ✅ Arbeitnow: {len(arbeitnow_jobs)} visa sponsorship jobs")
+    _emit_progress(progress_cb, "Scraping Arbeitnow", len(all_jobs))
 
     # Source 7: Remotive
     remotive_jobs = scrape_remotive()
     all_jobs.extend(remotive_jobs)
     print(f"  ✅ Remotive: {len(remotive_jobs)} remote DS/ML jobs")
+    _emit_progress(progress_cb, "Scraping Remotive", len(all_jobs))
 
     # Source 8: Jobicy
     jobicy_jobs = scrape_jobicy()
     all_jobs.extend(jobicy_jobs)
     print(f"  ✅ Jobicy: {len(jobicy_jobs)} remote DS jobs (USA)")
+    _emit_progress(progress_cb, "Scraping Jobicy", len(all_jobs))
 
-    # Filter career page jobs to last 7 days (keep jobs with no date)
-    from datetime import timedelta
-    cutoff = datetime.utcnow() - timedelta(days=2)
-    all_jobs = [
-        j for j in all_jobs
-        if j.source != "career_page" or j.posted_date is None or j.posted_date >= cutoff
-    ]
+    if _date_window_days() > 0:
+        all_jobs = [j for j in all_jobs if _is_within_posted_window(j.posted_date)]
+        _emit_progress(
+            progress_cb,
+            f"Filtering jobs posted within the last {_date_window_days()} day(s)",
+            len(all_jobs),
+        )
 
 
     all_jobs = enrich_missing_descriptions(all_jobs)
+    _emit_progress(progress_cb, "Enriching missing descriptions", len(all_jobs))
     # Title filter + level filter (applies to ALL sources)
     # exclude_levels = ["staff", "director", "principal", "vp ", "vice president", "head of", "chief", "lead", "manager", "senior staff", "distinguished", "intern", "phd", "ph.d", "doctorate", "postdoc", "fellow"]
     # exclude_clearance = ["ts/sci", "top secret", "secret clearance", "security clearance", "clearance required", "us citizen", "citizenship required", "public trust"]
@@ -719,6 +853,7 @@ def run_all_scrapers() -> list[Job]:
         and not _too_senior(j.title + " " + j.description)
     ]
     print(f"📋 After title filtering: {len(all_jobs)} relevant jobs")
+    _emit_progress(progress_cb, "Filtering for relevant roles", len(all_jobs))
 
     # Deduplicate across all sources
     seen = set()
@@ -729,6 +864,7 @@ def run_all_scrapers() -> list[Job]:
             unique.append(job)
 
     print(f"\n📊 Total: {len(all_jobs)} scraped → {len(unique)} unique jobs")
+    _emit_progress(progress_cb, "Deduplicated scraped jobs", len(unique))
     return unique
 
 

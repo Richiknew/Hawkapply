@@ -1,0 +1,24 @@
+{
+  "target_roles": [
+    "data scientist",
+    "machine learning engineer",
+    "marketing data scientist",
+    "financial data scientist",
+    "ad tech data scientist",
+    "ML engineer",
+    "AI engineer"
+  ],
+  "locations": [
+    "New York",
+    "San Francisco",
+    "Seattle",
+    "Boston",
+    "Chicago",
+    "Austin",
+    "Remote"
+  ],
+  "min_salary": 120000,
+  "posted_within_days": 1,
+  "min_h1b_filings": 5,
+  "require_sponsorship": true
+}

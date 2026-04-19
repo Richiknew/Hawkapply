@@ -15,6 +15,7 @@ Usage:
 """
 
 import json
+import re
 from openai import OpenAI
 from config import settings
 
@@ -52,6 +53,64 @@ Rules:
 - For visa_sponsorship: "yes" if they mention sponsoring, "no" if they say no sponsorship, "unknown" otherwise
 - Keep skills lowercase and concise
 - Separate hard requirements from nice-to-haves"""
+
+
+def parse_jd_local(description: str) -> dict:
+    """Quick local keyword extraction from JD text. No API call."""
+    desc = (description or "").lower()
+
+    langs = []
+    for lang in ["python", "sql", "pyspark", "r ", "pytorch", "sas"]:
+        if lang in desc:
+            langs.append(lang.strip())
+
+    tools = []
+    for tool in [
+        "databricks", "aws", "gcp", "azure", "spark", "hadoop", "airflow",
+        "dbt", "tableau", "power bi", "snowflake", "redshift", "bigquery",
+        "sagemaker", "mlflow", "docker", "kubernetes", "git", "jenkins",
+        "kafka", "s3", "ec2", "emr", "glue", "looker",
+    ]:
+        if tool in desc:
+            tools.append(tool)
+
+    ml = []
+    for technique in [
+        "logistic regression", "random forest", "xgboost", "deep learning",
+        "neural network", "nlp", "computer vision", "a/b test", "hypothesis test",
+        "clustering", "classification", "regression", "time series",
+        "recommendation", "reinforcement learning", "transformer",
+        "lstm", "cnn", "bert", "llm", "generative ai", "causal inference",
+        "bayesian", "gradient boost", "feature engineering",
+    ]:
+        if technique in desc:
+            ml.append(technique)
+
+    domains = []
+    for domain in [
+        "marketing", "advertising", "finance", "banking", "insurance",
+        "healthcare", "retail", "e-commerce", "supply chain", "logistics",
+        "media", "ad tech", "risk", "fraud", "pricing", "forecasting",
+    ]:
+        if domain in desc:
+            domains.append(domain)
+
+    yrs_match = re.search(r"(\d+)\+?\s*(?:years|yrs)", desc)
+    yrs = int(yrs_match.group(1)) if yrs_match else -1
+
+    return {
+        "programming_languages": langs,
+        "tools_and_platforms": tools,
+        "ml_techniques": ml,
+        "domain_knowledge": domains,
+        "years_experience_min": yrs,
+        "education": {
+            "degree": "masters" if "master" in desc else "bachelors" if "bachelor" in desc else "",
+            "fields": [],
+        },
+        "required_skills": langs + tools + ml,
+        "preferred_skills": [],
+    }
 
 
 def parse_jd(description: str, title: str = "", company: str = "") -> dict:

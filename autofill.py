@@ -390,7 +390,13 @@ def _build_resume_text(profile: dict) -> str:
 # Export for browser extension / clipboard
 # ──────────────────────────────────────────────────
 
-def export_autofill(profile: dict, job: dict = None, output_path: str = None, match_data: dict = None) -> dict:
+def export_autofill(
+    profile: dict,
+    job: dict = None,
+    output_path: str = None,
+    match_data: dict = None,
+    include_custom_answers: bool = True,
+) -> dict:
     """Export all autofill data as JSON for browser extension or clipboard."""
     
     fields = build_standard_fields(profile)
@@ -405,7 +411,11 @@ def export_autofill(profile: dict, job: dict = None, output_path: str = None, ma
     }
     
     if job:
-        result["custom_answers"] = generate_custom_answers(job, profile, match_data=match_data)
+        result["custom_answers"] = (
+            generate_custom_answers(job, profile, match_data=match_data)
+            if include_custom_answers
+            else _default_answers(profile, job)
+        )
         if match_data:
             result["match_data"] = match_data
         result["job_info"] = {

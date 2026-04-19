@@ -44,6 +44,19 @@ def _is_ds_role(title: str) -> bool:
 
 def _is_us(location: str) -> bool:
     loc = location.lower()
+    reject = [
+        "india", "bangalore", "bengaluru", "mumbai", "delhi", "hyderabad", "pune", "chennai",
+        "china", "shenzhen", "guangzhou", "beijing", "shanghai",
+        "canada", "toronto", "vancouver", "montreal",
+        "united kingdom", "london", "germany", "berlin", "france", "paris",
+        "netherlands", "amsterdam", "australia", "sydney", "melbourne",
+        "singapore", "hong kong", "japan", "tokyo", "brazil", "argentina",
+        "spain", "madrid", "italy", "milan", "poland", "warsaw", "romania",
+        "apac", "latam", "emea",
+    ]
+    if any(s in loc for s in reject):
+        return False
+
     signals = [
         "united states", ", us", "usa", "u.s.", "remote",
         "new york", "san francisco", "seattle", "boston",
@@ -79,6 +92,7 @@ HDR = {"User-Agent": settings.USER_AGENT}
 # ═══════════════ GREENHOUSE ═══════════════
 
 GREENHOUSE = {
+    # Original
     "Netflix": "netflix", "Airbnb": "airbnb", "DoorDash": "doordash",
     "Stripe": "stripe", "Coinbase": "coinbase", "Plaid": "plaid",
     "Robinhood": "robinhood", "Figma": "figma", "Notion": "notion",
@@ -99,6 +113,42 @@ GREENHOUSE = {
     "Wayfair": "wayfair", "Starbucks": "starbucks", "Nike": "nike",
     "Bloomberg": "bloomberg", "Thomson Reuters": "thomsonreuters",
     "Uber": "uber", "Tesla": "tesla", "Lyft": "lyft",
+    # Expanded — Cloud / SaaS / DevTools
+    "Atlassian": "atlassian", "Asana": "asana", "Box": "box",
+    "Cloudflare": "cloudflare", "HashiCorp": "hashicorp",
+    "Amplitude": "amplitude", "Carta": "carta", "Gusto": "gusto",
+    "Retool": "retool", "Airtable": "airtable", "Samsara": "samsara",
+    "PagerDuty": "pagerduty", "New Relic": "newrelic",
+    "JFrog": "jfrog", "Braze": "braze", "FullStory": "fullstory",
+    "Intercom": "intercom", "Gong": "gong", "Procore": "procore",
+    "GitHub": "github", "Miro": "miro", "Calendly": "calendly",
+    "Monday.com": "mondaydotcom", "Zendesk": "zendesk",
+    # Cybersecurity
+    "SentinelOne": "sentinelone", "Wiz": "wizsecurity",
+    "Snyk": "snyk", "Lacework": "lacework",
+    # Fintech / Payments
+    "Adyen": "adyen", "Lattice": "lattice", "Rippling": "rippling",
+    # Healthcare / Biotech
+    "Illumina": "illumina", "10x Genomics": "10xgenomics",
+    "Guardant Health": "guardanthealth", "Recursion": "recursionpharmaceuticals",
+    "Flatiron Health": "flatiron", "Tempus AI": "tempus",
+    # Real Estate / Proptech
+    "Compass": "compass", "Opendoor": "opendoor",
+    # Data / Analytics
+    "dbt Labs": "dbtlabs", "Fivetran": "fivetran",
+    # Gaming
+    "Epic Games": "epicgames", "Riot Games": "riotgames",
+    "Roblox": "roblox", "Unity": "unity",
+    # Travel / EdTech
+    "Coursera": "coursera", "Tripadvisor": "tripadvisor", "Expedia": "expedia",
+    # Sports
+    "DraftKings": "draftkings",
+    # HR Tech
+    "Handshake": "handshake",
+    # Logistics
+    "Flexport": "flexport",
+    # Veeva
+    "Veeva Systems": "veeva",
 }
 
 def _gh(company: str, slug: str) -> list[Job]:
@@ -130,10 +180,22 @@ def _gh(company: str, slug: str) -> list[Job]:
 # ═══════════════ LEVER ═══════════════
 
 LEVER = {
+    # Original
     "Spotify": "spotify", "Reddit": "reddit", "Instacart": "instacart",
     "Grammarly": "grammarly", "Dropbox": "dropbox", "Chime": "chime",
     "SoFi": "sofi", "Marqeta": "marqeta", "Canva": "canva",
     "Zscaler": "zscaler",
+    # Expanded
+    "Faire": "faire", "Snyk": "snyk", "Netlify": "netlify",
+    "CockroachLabs": "cockroachlabs", "Deel": "deel",
+    "DigitalOcean": "digitalocean", "Contentful": "contentful",
+    "Airbyte": "airbyte", "Monte Carlo": "montecarlodata",
+    "Nextdoor": "nextdoor", "Quora": "quora",
+    "ZipRecruiter": "ziprecruiter", "Verkada": "verkada",
+    "Superhuman": "superhuman", "Loom": "loopio",
+    "Hims": "hims", "Oscar Health": "oscarhealth",
+    "Devoted Health": "devoted", "GoodRx": "goodrx",
+    "Noom": "noom",
 }
 
 def _lv(company: str, slug: str) -> list[Job]:
@@ -162,8 +224,21 @@ def _lv(company: str, slug: str) -> list[Job]:
 # ═══════════════ ASHBY ═══════════════
 
 ASHBY = {
+    # Original
     "OpenAI": "openai", "Anthropic": "anthropic",
     "Cohere": "cohere", "Ramp": "ramp", "Anyscale": "anyscale",
+    # Expanded — AI-native & modern startups predominately use Ashby
+    "Perplexity AI": "perplexityai", "Groq": "groq",
+    "Together AI": "togetherai", "Cerebras": "cerebras",
+    "Runway": "runwayml", "Harvey": "harvey",
+    "Writer": "writer", "Weaviate": "weaviate",
+    "Pinecone": "pinecone", "LangChain": "langchain",
+    "Modal": "modal", "Replit": "replit",
+    "Adept": "adept", "Glean": "glean",
+    "Mapbox": "mapbox", "Linear": "linear",
+    "Coda": "coda", "Notion Calendar": "notionhq",
+    "dbt Labs Ashby": "dbtlabs",
+    "Stability AI": "stabilityai",
 }
 
 def _ab(company: str, slug: str) -> list[Job]:
@@ -190,9 +265,14 @@ def _ab(company: str, slug: str) -> list[Job]:
 # ═══════════════ SMARTRECRUITERS ═══════════════
 
 SMARTRECRUITERS = {
+    # Original
     "Visa": "Visa", "KPMG": "KPMG",
     "Booz Allen Hamilton": "BoozAllenHamilton",
     "Siemens": "Siemens", "Honeywell": "Honeywell",
+    # Expanded
+    "Cognizant": "Cognizant", "Capgemini": "Capgemini",
+    "NTT Data": "NTTData", "L3Harris": "L3Harris",
+    "Hitachi": "Hitachi",
 }
 
 def _sr(company: str, slug: str) -> list[Job]:
@@ -224,6 +304,7 @@ def _sr(company: str, slug: str) -> list[Job]:
 # ═══════════════ WORKDAY ═══════════════
 
 WORKDAY = {
+    # ── Original ──────────────────────────────────────────────────────────────
     "Capital One": "https://capitalone.wd1.myworkdayjobs.com/wday/cxs/capitalone/Capital_One/jobs",
     "Walmart": "https://walmart.wd5.myworkdayjobs.com/wday/cxs/walmart/WalmartExternal/jobs",
     "Deloitte": "https://apply.deloitte.com/wday/cxs/deloitte/Deloitte_Experienced/jobs",
@@ -266,6 +347,22 @@ WORKDAY = {
     "Disney": "https://disney.wd5.myworkdayjobs.com/wday/cxs/disney/DisneyCareerSite/jobs",
     "NBCUniversal": "https://nbcunicareers.wd5.myworkdayjobs.com/wday/cxs/nbcunicareers/NBCU_Careers/jobs",
     "JPMorgan Chase": "https://jpmc.fa.oraclecloud.com/hcmRestApi/resources/latest/recruitingCEJobRequisitions",
+    # ── Expanded ──────────────────────────────────────────────────────────────
+    "Salesforce": "https://salesforce.wd12.myworkdayjobs.com/wday/cxs/salesforce/External/jobs",
+    "Nvidia": "https://nvidia.wd5.myworkdayjobs.com/wday/cxs/nvidia/NVIDIAExternalCareerSite/jobs",
+    "Snowflake": "https://snowflake.wd5.myworkdayjobs.com/wday/cxs/snowflake/SnowflakeCareers/jobs",
+    "AbbVie": "https://abbvie.wd1.myworkdayjobs.com/wday/cxs/abbvie/External/jobs",
+    "Eli Lilly": "https://lilly.wd1.myworkdayjobs.com/wday/cxs/lilly/LillyCareers/jobs",
+    "Amgen": "https://amgen.wd1.myworkdayjobs.com/wday/cxs/amgen/External/jobs",
+    "AstraZeneca": "https://astrazeneca.wd3.myworkdayjobs.com/wday/cxs/astrazeneca/AstraZenecaExternalCareers/jobs",
+    "Bristol-Myers Squibb": "https://bms.wd5.myworkdayjobs.com/wday/cxs/bms/External/jobs",
+    "CVS Health": "https://cvshealth.wd1.myworkdayjobs.com/wday/cxs/cvshealth/CVSHealth_External/jobs",
+    "Elevance Health": "https://elevancehealth.wd1.myworkdayjobs.com/wday/cxs/elevancehealth/External/jobs",
+    "Cigna": "https://cigna.wd5.myworkdayjobs.com/wday/cxs/cigna/Cigna_External/jobs",
+    "AT&T": "https://att.wd1.myworkdayjobs.com/wday/cxs/att/External/jobs",
+    "BNY Mellon": "https://bnymellon.wd5.myworkdayjobs.com/wday/cxs/bnymellon/External/jobs",
+    "Charles Schwab": "https://schwab.wd5.myworkdayjobs.com/wday/cxs/schwab/CareerSite/jobs",
+    "Fiserv": "https://fiserv.wd5.myworkdayjobs.com/wday/cxs/fiserv/FiservExternal/jobs",
 }
 
 WORKDAY_QUERIES = ["data scientist", "machine learning", "AI engineer", "applied scientist"]

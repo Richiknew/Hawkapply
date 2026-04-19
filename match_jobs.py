@@ -14,61 +14,38 @@ import csv
 import json
 import time
 from db import operations as ops
-from parsers.jd_parser import parse_jd
+from parsers.jd_parser import parse_jd, parse_jd_local
 from parsers.resume_matcher import match_resume_fast, match_resume_ai
 from tqdm import tqdm
 from db.operations import upsert_match_result
 from db.operations import get_connection
 
-import re
+def _preselect_jobs(jobs: list[dict], job_limit: int = 100) -> list[dict]:
+    ranked_jobs: list[dict] = []
 
-def parse_jd_local(description: str) -> dict:
-    """Quick keyword extraction from JD text. No API call."""
-    desc = description.lower()
-    
-    langs = []
-    for lang in ["python", "sql", "pyspark", "r ", "python","pytorch", "sas"]:
-        if lang in desc:
-            langs.append(lang.strip())
-    
-    tools = []
-    for tool in ["databricks", "aws", "gcp", "azure", "spark", "hadoop", "airflow",
-                  "dbt", "tableau", "power bi", "snowflake", "redshift", "bigquery",
-                  "sagemaker", "mlflow", "docker", "kubernetes", "git", "jenkins",
-                   "kafka", "s3", "ec2", "emr", "glue", "looker"]:
-        if tool in desc:
-            tools.append(tool)
-    
-    ml = []
-    for technique in ["logistic regression", "random forest", "xgboost", "deep learning",
-                       "neural network", "nlp", "computer vision", "a/b test", "hypothesis test",
-                       "clustering", "classification", "regression", "time series",
-                       "recommendation", "reinforcement learning", "transformer",
-                       "lstm", "cnn", "bert", "llm", "generative ai", "causal inference",
-                       "bayesian", "gradient boost", "feature engineering"]:
-        if technique in desc:
-            ml.append(technique)
-    
-    domains = []
-    for domain in ["marketing", "advertising", "finance", "banking", "insurance",
-                    "healthcare", "retail", "e-commerce", "supply chain", "logistics",
-                    "media", "ad tech", "risk", "fraud", "pricing", "forecasting"]:
-        if domain in desc:
-            domains.append(domain)
-    
-    yrs_match = re.search(r'(\d+)\+?\s*(?:years|yrs)', desc)
-    yrs = int(yrs_match.group(1)) if yrs_match else -1
-    
-    return {
-        "programming_languages": langs,
-        "tools_and_platforms": tools,
-        "ml_techniques": ml,
-        "domain_knowledge": domains,
-        "years_experience_min": yrs,
-        "education": {"degree": "masters" if "master" in desc else "bachelors" if "bachelor" in desc else "", "fields": []},
-        "required_skills": langs + tools + ml,
-        "preferred_skills": [],
-    }
+    for job in jobs:
+        description = job.get("description", "") or ""
+        if not description.strip():
+            continue
+
+        parsed_local = parse_jd_local(description)
+        fast_result = match_resume_fast(parsed_local)
+        h1b_score = float(job.get("h1b_score") or 0)
+        preliminary_combined = round(fast_result["total_score"] * 0.6 + h1b_score * 0.4, 1)
+
+        enriched = dict(job)
+        enriched["_parsed_jd_local"] = parsed_local
+        enriched["_fast_result"] = fast_result
+        enriched["_preliminary_combined"] = preliminary_combined
+        ranked_jobs.append(enriched)
+
+    ranked_jobs.sort(
+        key=lambda job: (job["_preliminary_combined"], float(job.get("h1b_score") or 0)),
+        reverse=True,
+    )
+    return ranked_jobs[:job_limit]
+
+
 def run_matching(use_ai: bool = False, top_n: int = 20,
                  min_score: float = 0, ai_threshold: float = 60.0):
     """Parse JDs and match all jobs against Shreya's resume."""
@@ -79,12 +56,12 @@ def run_matching(use_ai: bool = False, top_n: int = 20,
 
     # Get all jobs with descriptions
     jobs = ops.get_jobs(status="new", sponsors_only=False, limit=500)
-    # jobs_with_desc = [j for j in jobs if j.get("description", "").strip()]
-    jobs_with_desc = [j for j in jobs if j.get("description", "").strip()]
-    jobs_with_desc.sort(key=lambda x: x.get("h1b_score", 0), reverse=True)
-    jobs_with_desc = jobs_with_desc[:50]  # Limit to top 50 by H1B score for parsing/matching to stay within API budget
+    jobs_with_desc = _preselect_jobs(jobs, job_limit=100)
 
-    print(f"\n📋 {len(jobs)} total jobs, {len(jobs_with_desc)} have descriptions to parse")
+    print(
+        f"\n📋 {len(jobs)} total jobs, {len(jobs_with_desc)} selected as the "
+        "top rule-ranked jobs before AI matching"
+    )
 
     if not jobs_with_desc:
         print("❌ No jobs with descriptions found. Run main.py first.")
@@ -102,22 +79,14 @@ def run_matching(use_ai: bool = False, top_n: int = 20,
 
     api_failed = False
     for i, job in tqdm(enumerate(jobs_with_desc), total=len(jobs_with_desc), desc="  🔍 Parsing & matching"):
-        if api_failed:
-            # Skip API, use empty parse
-            fast_result = match_resume_fast({})
-            results.append({
-                "rank": 0, "title": job["title"], "company": job["company"],
-                "location": job["location"], "url": job["url"],
-                "h1b_score": job.get("h1b_score", 0), "match_score": fast_result["total_score"],
-                "fit_tier": fast_result["fit_tier"], "strengths": [], "gaps": [],
-                "cover_letter_angles": [], "source": job["source"], "job_hash": job["job_hash"],
-            })
-            continue
         title = job["title"]
         company = job["company"]
+        fast_result = job["_fast_result"]
+        parsed_jd = job["_parsed_jd_local"]
+        score = fast_result["total_score"]
 
-        # Step 1: Parse JD
-        if use_ai and not api_failed:
+        # Step 1: AI parse only for jobs that already look promising locally
+        if use_ai and not api_failed and score >= ai_threshold:
             try:
                 parsed_jd = parse_jd(
                     description=job["description"],
@@ -127,9 +96,7 @@ def run_matching(use_ai: bool = False, top_n: int = 20,
             except Exception as e:
                 print(f"  ❌ API quota exhausted. Switching to local parsing.")
                 api_failed = True
-                parsed_jd = parse_jd_local(job["description"])
-        else:
-            parsed_jd = parse_jd_local(job["description"])
+                parsed_jd = job["_parsed_jd_local"]
 
         if not parsed_jd.get("required_skills") and not parsed_jd.get("programming_languages"):
             # JD too short or parsing failed — use fast match only
@@ -151,13 +118,14 @@ def run_matching(use_ai: bool = False, top_n: int = 20,
             })
             continue
 
-        # Step 2: Fast match
-        fast_result = match_resume_fast(parsed_jd)
-        score = fast_result["total_score"]
+        # Step 2: Recompute fast match only if the AI parser produced a richer JD
+        if parsed_jd is not job["_parsed_jd_local"]:
+            fast_result = match_resume_fast(parsed_jd)
+            score = fast_result["total_score"]
 
         # Step 3: AI match for strong candidates (if enabled)
         ai_result = None
-        if use_ai and score >= ai_threshold:
+        if use_ai and not api_failed and score >= ai_threshold:
             print(f"  🤖 [{i+1}/{len(jobs_with_desc)}] AI matching: {title} @ {company} (fast: {score})")
             ai_result = match_resume_ai(
                 parsed_jd, job_title=title, company=company

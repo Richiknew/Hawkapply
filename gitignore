@@ -1,0 +1,14 @@
+.env
+__pycache__/
+*.pyc
+*.pyo
+.DS_Store
+logs/*.log
+data/candidate_profile.json
+data/pipeline_config.json
+*.pdf
+dashboard/node_modules/
+dashboard/.next/
+dashboard/.git/
+logs/
+*.sqlite3

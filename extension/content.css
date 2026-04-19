@@ -1,0 +1,273 @@
+/* HawkApply overlay injected into job pages */
+
+#hawkapply-overlay {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  z-index: 2147483647;
+  width: 300px;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+#hawkapply-overlay * {
+  box-sizing: border-box;
+}
+
+.hawk-card {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12), 0 2px 8px rgba(0, 0, 0, 0.08);
+  overflow: hidden;
+  transition: opacity 0.2s, transform 0.2s;
+}
+
+.hawk-card.hawk-collapsed {
+  width: auto;
+}
+
+/* Header */
+.hawk-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  background: #1e293b;
+  color: #ffffff;
+  cursor: pointer;
+  user-select: none;
+}
+
+.hawk-logo {
+  font-size: 16px;
+}
+
+.hawk-title {
+  font-weight: 600;
+  font-size: 13px;
+  flex: 1;
+}
+
+.hawk-toggle {
+  font-size: 10px;
+  opacity: 0.7;
+  transition: transform 0.2s;
+}
+
+.hawk-card.hawk-collapsed .hawk-toggle {
+  transform: rotate(180deg);
+}
+
+/* Body */
+.hawk-body {
+  padding: 12px;
+}
+
+.hawk-card.hawk-collapsed .hawk-body {
+  display: none;
+}
+
+/* Loading */
+.hawk-loading {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #64748b;
+  padding: 4px 0;
+}
+
+.hawk-spinner {
+  width: 14px;
+  height: 14px;
+  border: 2px solid #e2e8f0;
+  border-top-color: #6366f1;
+  border-radius: 50%;
+  animation: hawk-spin 0.7s linear infinite;
+  flex-shrink: 0;
+}
+
+@keyframes hawk-spin {
+  to { transform: rotate(360deg); }
+}
+
+/* Score row */
+.hawk-scores {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.hawk-score-box {
+  flex: 1;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 6px 8px;
+  text-align: center;
+}
+
+.hawk-score-value {
+  font-size: 20px;
+  font-weight: 700;
+  color: #1e293b;
+  line-height: 1;
+}
+
+.hawk-score-label {
+  font-size: 10px;
+  color: #94a3b8;
+  margin-top: 2px;
+}
+
+/* Tier badge */
+.hawk-tier {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+
+.hawk-tier-strong { background: #dcfce7; color: #166534; }
+.hawk-tier-good   { background: #dbeafe; color: #1e40af; }
+.hawk-tier-stretch{ background: #fef9c3; color: #854d0e; }
+.hawk-tier-none   { background: #f1f5f9; color: #64748b; }
+
+/* Status row */
+.hawk-status-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.hawk-status-label {
+  font-size: 11px;
+  color: #64748b;
+}
+
+.hawk-status-select {
+  font-size: 11px;
+  padding: 2px 6px;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  background: #f8fafc;
+  color: #1e293b;
+  cursor: pointer;
+  outline: none;
+}
+
+.hawk-status-select:focus {
+  border-color: #6366f1;
+}
+
+/* Sponsor badge */
+.hawk-sponsor {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  padding: 2px 7px;
+  border-radius: 999px;
+  margin-bottom: 8px;
+}
+
+.hawk-sponsor-yes { background: #d1fae5; color: #065f46; }
+.hawk-sponsor-no  { background: #fee2e2; color: #991b1b; }
+
+/* Actions */
+.hawk-actions {
+  display: flex;
+  gap: 6px;
+  margin-top: 10px;
+}
+
+.hawk-btn {
+  flex: 1;
+  padding: 6px 10px;
+  border-radius: 7px;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  border: none;
+  transition: opacity 0.15s;
+  text-align: center;
+}
+
+.hawk-btn:hover { opacity: 0.85; }
+.hawk-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.hawk-btn-primary {
+  background: #6366f1;
+  color: #ffffff;
+}
+
+.hawk-btn-secondary {
+  background: #f1f5f9;
+  color: #475569;
+  border: 1px solid #e2e8f0;
+}
+
+/* Strengths/gaps */
+.hawk-section-title {
+  font-size: 10px;
+  font-weight: 600;
+  color: #94a3b8;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin: 8px 0 4px;
+}
+
+.hawk-bullets {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.hawk-bullets li {
+  font-size: 11px;
+  color: #475569;
+  padding: 2px 0;
+  display: flex;
+  gap: 4px;
+}
+
+.hawk-bullet-icon { flex-shrink: 0; }
+
+/* Not-found state */
+.hawk-not-found {
+  color: #64748b;
+  font-size: 12px;
+  margin-bottom: 8px;
+}
+
+/* Error */
+.hawk-error {
+  color: #dc2626;
+  font-size: 11px;
+  padding: 4px 0;
+}
+
+/* Toast */
+.hawk-toast {
+  position: fixed;
+  bottom: 340px;
+  right: 24px;
+  z-index: 2147483647;
+  background: #1e293b;
+  color: #fff;
+  padding: 8px 14px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+  animation: hawk-fadein 0.2s ease;
+}
+
+@keyframes hawk-fadein {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}

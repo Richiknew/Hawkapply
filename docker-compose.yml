@@ -25,6 +25,18 @@ services:
       retries: 3
       start_period: 10s
 
+  dashboard:
+    build: ./dashboard
+    ports:
+      - "3000:3000"
+    environment:
+      - HAWKAPI_URL=http://api:8000
+      - HAWKAPI_KEY=${API_KEY}
+    depends_on:
+      api:
+        condition: service_healthy
+    restart: unless-stopped
+
   # Redis — ready for Celery task queue (Phase 2 upgrade)
   redis:
     image: redis:7-alpine

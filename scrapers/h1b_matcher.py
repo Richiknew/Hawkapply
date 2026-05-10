@@ -34,28 +34,28 @@ Copy this entire list and replace SEED_SPONSORS in h1b_matcher.py.
 SEED_SPONSORS = [
     # ══════ FAANG / Big Tech ══════
     {"company": "Meta Platforms", "filings": 276, "avg_salary": 202781},
-    {"company": "Amazon", "filings": 250, "avg_salary": 157000},
-    {"company": "Google", "filings": 220, "avg_salary": 185000},
+    {"company": "Amazon", "filings": 345, "avg_salary": 159200},   # includes AWS + Amazon.com Services LLC
+    {"company": "Google", "filings": 146, "avg_salary": 185570},
     {"company": "Microsoft", "filings": 200, "avg_salary": 175000},
-    {"company": "Apple", "filings": 150, "avg_salary": 195000},
-    {"company": "Netflix", "filings": 60, "avg_salary": 220000},
+    {"company": "Apple", "filings": 80, "avg_salary": 203530},
+    {"company": "Netflix", "filings": 10, "avg_salary": 263942},   # very few DS-titled LCAs, extremely high pay
 
     # ══════ Tech — Large ══════
-    {"company": "Uber", "filings": 55, "avg_salary": 190000},
-    {"company": "Airbnb", "filings": 50, "avg_salary": 200000},
-    {"company": "Salesforce", "filings": 80, "avg_salary": 175000},
-    {"company": "IBM", "filings": 90, "avg_salary": 140000},
-    {"company": "TikTok", "filings": 70, "avg_salary": 180000},
-    {"company": "ByteDance", "filings": 65, "avg_salary": 185000},
-    {"company": "Stripe", "filings": 40, "avg_salary": 195000},
-    {"company": "LinkedIn", "filings": 45, "avg_salary": 180000},
-    {"company": "Adobe", "filings": 50, "avg_salary": 175000},
+    {"company": "Uber", "filings": 20, "avg_salary": 146425},
+    {"company": "Airbnb", "filings": 2, "avg_salary": 159500},     # titles roles as Analytics Engineer
+    {"company": "Salesforce", "filings": 10, "avg_salary": 188250},
+    {"company": "IBM", "filings": 34, "avg_salary": 140000},
+    {"company": "TikTok", "filings": 41, "avg_salary": 180000},
+    {"company": "ByteDance", "filings": 22, "avg_salary": 185000},
+    {"company": "Stripe", "filings": 8, "avg_salary": 168678},
+    {"company": "LinkedIn", "filings": 12, "avg_salary": 137340},
+    {"company": "Adobe", "filings": 10, "avg_salary": 170000},
     {"company": "Oracle", "filings": 45, "avg_salary": 155000},
     {"company": "SAP", "filings": 30, "avg_salary": 150000},
     {"company": "Spotify", "filings": 20, "avg_salary": 185000},
     {"company": "Pinterest", "filings": 25, "avg_salary": 180000},
     {"company": "Snap", "filings": 20, "avg_salary": 190000},
-    {"company": "DoorDash", "filings": 30, "avg_salary": 185000},
+    {"company": "DoorDash", "filings": 25, "avg_salary": 163238},
     {"company": "Instacart", "filings": 25, "avg_salary": 180000},
     {"company": "Lyft", "filings": 20, "avg_salary": 175000},
     {"company": "Reddit", "filings": 15, "avg_salary": 190000},
@@ -65,8 +65,8 @@ SEED_SPONSORS = [
     {"company": "Shopify", "filings": 15, "avg_salary": 170000},
     {"company": "Block", "filings": 25, "avg_salary": 185000},
     {"company": "Square", "filings": 25, "avg_salary": 185000},
-    {"company": "Twitter", "filings": 30, "avg_salary": 185000},
-    {"company": "X Corp", "filings": 15, "avg_salary": 180000},
+    {"company": "Twitter", "filings": 0, "avg_salary": 180000},    # X Corp has 0 DS LCAs post-2022
+    {"company": "X Corp", "filings": 0, "avg_salary": 180000},    # 0 DS-titled LCAs in 2024 DOL data
     {"company": "Roku", "filings": 15, "avg_salary": 175000},
     {"company": "eBay", "filings": 20, "avg_salary": 170000},
     {"company": "Zillow", "filings": 20, "avg_salary": 175000},
@@ -99,23 +99,23 @@ SEED_SPONSORS = [
     {"company": "Confluent", "filings": 10, "avg_salary": 175000},
 
     # ══════ AI / ML Companies ══════
-    {"company": "OpenAI", "filings": 30, "avg_salary": 250000},
-    {"company": "Anthropic", "filings": 20, "avg_salary": 240000},
-    {"company": "Databricks", "filings": 35, "avg_salary": 195000},
-    {"company": "Snowflake", "filings": 30, "avg_salary": 190000},
+    {"company": "OpenAI", "filings": 2, "avg_salary": 347500},    # files as "Member of Technical Staff", not DS title
+    {"company": "Anthropic", "filings": 0, "avg_salary": 295000}, # uses Research Scientist/Engineer titles only
+    {"company": "Databricks", "filings": 2, "avg_salary": 140000}, # titles DS roles as SWE/Solutions Architect
+    {"company": "Snowflake", "filings": 4, "avg_salary": 151736},
     {"company": "Datadog", "filings": 25, "avg_salary": 185000},
-    {"company": "Palantir", "filings": 25, "avg_salary": 180000},
+    {"company": "Palantir", "filings": 0, "avg_salary": 180000},  # uses Forward Deployed Engineer title, 0 DS LCAs
     {"company": "Scale AI", "filings": 15, "avg_salary": 190000},
     {"company": "Cohere", "filings": 8, "avg_salary": 200000},
     {"company": "Hugging Face", "filings": 10, "avg_salary": 195000},
-    {"company": "C3 AI", "filings": 12, "avg_salary": 175000},
+    {"company": "C3 AI", "filings": 15, "avg_salary": 154760},
     {"company": "DataRobot", "filings": 10, "avg_salary": 170000},
     {"company": "H2O.ai", "filings": 8, "avg_salary": 170000},
     {"company": "Weights & Biases", "filings": 8, "avg_salary": 185000},
     {"company": "Anyscale", "filings": 8, "avg_salary": 190000},
     {"company": "Moveworks", "filings": 8, "avg_salary": 180000},
     {"company": "Glean", "filings": 8, "avg_salary": 185000},
-    {"company": "Nvidia", "filings": 40, "avg_salary": 200000},
+    {"company": "Nvidia", "filings": 12, "avg_salary": 174905},
 
     # ══════ Semiconductor / Hardware ══════
     {"company": "Intel", "filings": 35, "avg_salary": 160000},
@@ -126,14 +126,15 @@ SEED_SPONSORS = [
     {"company": "Cisco", "filings": 35, "avg_salary": 160000},
 
     # ══════ Finance — Banks ══════
-    {"company": "JPMorgan Chase", "filings": 120, "avg_salary": 165000},
-    {"company": "Capital One", "filings": 110, "avg_salary": 160000},
-    {"company": "Goldman Sachs", "filings": 75, "avg_salary": 170000},
-    {"company": "Morgan Stanley", "filings": 60, "avg_salary": 165000},
-    {"company": "Bank of America", "filings": 55, "avg_salary": 155000},
-    {"company": "Citigroup", "filings": 50, "avg_salary": 160000},
-    {"company": "Citi", "filings": 50, "avg_salary": 160000},
-    {"company": "Wells Fargo", "filings": 45, "avg_salary": 155000},
+    # NOTE: banks file thousands of H1Bs but use internal titles (Associate/VP), not "Data Scientist"
+    {"company": "JPMorgan Chase", "filings": 3, "avg_salary": 118400},   # 3 DS-titled LCAs in 2024 DOL data
+    {"company": "Capital One", "filings": 0, "avg_salary": 160000},      # 0 DS LCAs; uses Principal Associate etc.
+    {"company": "Goldman Sachs", "filings": 0, "avg_salary": 170000},    # 0 DS LCAs; uses Associate/VP titles
+    {"company": "Morgan Stanley", "filings": 8, "avg_salary": 165000},
+    {"company": "Bank of America", "filings": 10, "avg_salary": 155000},
+    {"company": "Citigroup", "filings": 15, "avg_salary": 160000},
+    {"company": "Citi", "filings": 15, "avg_salary": 160000},
+    {"company": "Wells Fargo", "filings": 10, "avg_salary": 155000},
     {"company": "Barclays", "filings": 30, "avg_salary": 165000},
     {"company": "Deutsche Bank", "filings": 25, "avg_salary": 160000},
     {"company": "HSBC", "filings": 20, "avg_salary": 155000},
@@ -184,22 +185,22 @@ SEED_SPONSORS = [
     {"company": "Nationwide", "filings": 8, "avg_salary": 140000},
 
     # ══════ Consulting / Big 4 ══════
-    {"company": "Deloitte", "filings": 100, "avg_salary": 145000},
-    {"company": "Accenture", "filings": 85, "avg_salary": 135000},
-    {"company": "EY", "filings": 40, "avg_salary": 140000},
-    {"company": "KPMG", "filings": 35, "avg_salary": 145000},
-    {"company": "PwC", "filings": 40, "avg_salary": 140000},
+    # NOTE: consulting firms file many H1Bs but rarely titled "Data Scientist" in DOL filings
+    {"company": "Deloitte", "filings": 6, "avg_salary": 78603},   # 6 DS LCAs; avg low due to govt-contract wage bands
+    {"company": "Accenture", "filings": 0, "avg_salary": 135000}, # 0 DS LCAs; uses "Data and AI Consultant" title
+    {"company": "EY", "filings": 8, "avg_salary": 140000},
+    {"company": "KPMG", "filings": 8, "avg_salary": 145000},
+    {"company": "PwC", "filings": 8, "avg_salary": 140000},
     {"company": "McKinsey", "filings": 25, "avg_salary": 180000},
     {"company": "BCG", "filings": 20, "avg_salary": 175000},
     {"company": "Bain", "filings": 15, "avg_salary": 170000},
     {"company": "Booz Allen Hamilton", "filings": 20, "avg_salary": 145000},
     {"company": "Capgemini", "filings": 30, "avg_salary": 130000},
-    {"company": "Cognizant", "filings": 60, "avg_salary": 125000},
-    {"company": "Infosys", "filings": 80, "avg_salary": 120000},
-    {"company": "TCS", "filings": 70, "avg_salary": 115000},
-    {"company": "Tata Consultancy Services", "filings": 70, "avg_salary": 115000},
-    {"company": "Wipro", "filings": 50, "avg_salary": 115000},
-    {"company": "HCL Technologies", "filings": 40, "avg_salary": 120000},
+    # Cognizant: publicly stated they will no longer sponsor new H1B workers (2025)
+    # TCS CEO stated they will not add to H1B count; only 3 DS LCAs in 2024
+    {"company": "Infosys", "filings": 2, "avg_salary": 102399},
+    {"company": "Wipro", "filings": 5, "avg_salary": 115000},
+    {"company": "HCL Technologies", "filings": 5, "avg_salary": 120000},
 
     # ══════ Healthcare / Pharma ══════
     {"company": "Johnson & Johnson", "filings": 25, "avg_salary": 155000},
@@ -234,7 +235,7 @@ SEED_SPONSORS = [
     {"company": "Optimum Media", "filings": 8, "avg_salary": 140000},
 
     # ══════ Retail / E-commerce ══════
-    {"company": "Walmart", "filings": 95, "avg_salary": 145000},
+    {"company": "Walmart", "filings": 101, "avg_salary": 124675},  # paused new H1B offers Sept 2025 due to $100K fee rule
     {"company": "Target", "filings": 25, "avg_salary": 140000},
     {"company": "Costco", "filings": 10, "avg_salary": 140000},
     {"company": "Home Depot", "filings": 15, "avg_salary": 140000},
@@ -247,8 +248,8 @@ SEED_SPONSORS = [
     {"company": "GM", "filings": 20, "avg_salary": 155000},
     {"company": "General Motors", "filings": 20, "avg_salary": 155000},
     {"company": "Rivian", "filings": 10, "avg_salary": 175000},
-    {"company": "Waymo", "filings": 15, "avg_salary": 200000},
-    {"company": "Cruise", "filings": 12, "avg_salary": 190000},
+    {"company": "Waymo", "filings": 5, "avg_salary": 189000},
+    # Cruise removed — GM ended robotaxi business Dec 2024, 50% layoff Feb 2025
     {"company": "FedEx", "filings": 12, "avg_salary": 145000},
     {"company": "UPS", "filings": 10, "avg_salary": 145000},
 
@@ -307,7 +308,7 @@ SEED_SPONSORS = [
     {"company": "Kahoot", "filings": 5, "avg_salary": 155000},
 
     # ══════ Travel / Hospitality ══════
-    {"company": "Expedia", "filings": 15, "avg_salary": 170000},
+    {"company": "Expedia", "filings": 27, "avg_salary": 118414},  # 27 DS LCAs in 2024, Seattle-heavy
     {"company": "Booking Holdings", "filings": 12, "avg_salary": 175000},
     {"company": "Tripadvisor", "filings": 8, "avg_salary": 165000},
     {"company": "Marriott", "filings": 10, "avg_salary": 150000},
@@ -448,7 +449,7 @@ SEED_SPONSORS = [
     {"company": "Lucid Motors", "filings": 8, "avg_salary": 170000},
 
     # ══════ AI Startups (New Generation) ══════
-    {"company": "Perplexity AI", "filings": 5, "avg_salary": 230000},
+    {"company": "Perplexity AI", "filings": 13, "avg_salary": 280000},  # 10/10 petitions approved FY2025
     {"company": "Groq", "filings": 6, "avg_salary": 220000},
     {"company": "Together AI", "filings": 5, "avg_salary": 215000},
     {"company": "Lambda Labs", "filings": 5, "avg_salary": 210000},
@@ -456,7 +457,7 @@ SEED_SPONSORS = [
     {"company": "Runway AI", "filings": 5, "avg_salary": 215000},
     {"company": "Character AI", "filings": 6, "avg_salary": 220000},
     {"company": "Inflection AI", "filings": 5, "avg_salary": 220000},
-    {"company": "xAI", "filings": 5, "avg_salary": 220000},
+    {"company": "xAI", "filings": 12, "avg_salary": 300000},   # Elon Musk AI lab, verified FY2024 DOL
     {"company": "Mistral AI", "filings": 5, "avg_salary": 215000},
     {"company": "Harvey AI", "filings": 5, "avg_salary": 215000},
     {"company": "Writer", "filings": 5, "avg_salary": 205000},

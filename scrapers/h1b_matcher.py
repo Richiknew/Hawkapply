@@ -625,6 +625,82 @@ SEED_SPONSORS = [
     {"company": "Machina Labs", "filings": 5, "avg_salary": 160000},
     {"company": "Path Robotics", "filings": 5, "avg_salary": 165000},
     {"company": "Veo Robotics", "filings": 5, "avg_salary": 165000},
+
+    # ══════ Verified DS-Specific LCA Sponsors (DOL FY2023-2025) ══════
+    # Source: h1bdata.info + MyVisaJobs Data Scientist report + H1BGrader
+
+    # Healthcare / Insurance
+    {"company": "Aetna", "filings": 22, "avg_salary": 125152},
+    {"company": "Aetna Resources LLC", "filings": 22, "avg_salary": 125152},
+    {"company": "CVS Health", "filings": 19, "avg_salary": 129021},
+    {"company": "Caremark LLC", "filings": 12, "avg_salary": 125366},
+    {"company": "Elevance Health", "filings": 7, "avg_salary": 122325},
+    {"company": "Health Care Service Corporation", "filings": 3, "avg_salary": 87137},
+    {"company": "Verily Life Sciences", "filings": 5, "avg_salary": 121000},
+    {"company": "UT MD Anderson Cancer Center", "filings": 15, "avg_salary": 110127},
+    {"company": "Brigham and Women's Hospital", "filings": 4, "avg_salary": 111429},
+    {"company": "Massachusetts General Hospital", "filings": 5, "avg_salary": 109348},
+    {"company": "Children's Hospital of Philadelphia", "filings": 6, "avg_salary": 102589},
+
+    # Automotive / Industrial
+    {"company": "Ford Motor Company", "filings": 24, "avg_salary": 140230},
+    {"company": "Caterpillar", "filings": 9, "avg_salary": 110593},
+    {"company": "Schlumberger", "filings": 8, "avg_salary": 170996},
+    {"company": "SLB", "filings": 8, "avg_salary": 170996},
+    {"company": "Penske Truck Leasing", "filings": 5, "avg_salary": 104932},
+
+    # Retail / Consumer
+    {"company": "Home Depot", "filings": 11, "avg_salary": 125480},
+    {"company": "Safeway", "filings": 5, "avg_salary": 159671},
+    {"company": "Starbucks", "filings": 4, "avg_salary": 142904},
+    {"company": "Best Buy", "filings": 4, "avg_salary": 116831},
+    {"company": "Georgia-Pacific", "filings": 3, "avg_salary": 105000},
+
+    # Financial Services (verified DS LCAs)
+    {"company": "Navy Federal Credit Union", "filings": 7, "avg_salary": 111033},
+    {"company": "US Bank", "filings": 6, "avg_salary": 134074},
+    {"company": "Citizens Financial Group", "filings": 6, "avg_salary": 118268},
+    {"company": "Northern Trust", "filings": 5, "avg_salary": 115138},
+    {"company": "Truist Bank", "filings": 5, "avg_salary": 103534},
+    {"company": "Euronext", "filings": 4, "avg_salary": 169500},
+    {"company": "FIS", "filings": 5, "avg_salary": 154867},
+    {"company": "John Hancock", "filings": 3, "avg_salary": 122763},
+
+    # Tech (verified DS LCAs)
+    {"company": "Lyft", "filings": 26, "avg_salary": 160086},
+    {"company": "Dropbox", "filings": 17, "avg_salary": 198954},
+    {"company": "Boston Consulting Group", "filings": 27, "avg_salary": 136333},
+    {"company": "BCG", "filings": 27, "avg_salary": 136333},
+    {"company": "LTIMindtree", "filings": 26, "avg_salary": 114978},
+    {"company": "Block", "filings": 12, "avg_salary": 189852},
+    {"company": "Instacart", "filings": 5, "avg_salary": 175200},
+    {"company": "Maplebear", "filings": 5, "avg_salary": 175200},
+    {"company": "Figma", "filings": 5, "avg_salary": 189117},
+    {"company": "Roblox", "filings": 5, "avg_salary": 225997},
+    {"company": "Asana", "filings": 5, "avg_salary": 235800},
+    {"company": "Autodesk", "filings": 5, "avg_salary": 167109},
+    {"company": "Zillow", "filings": 4, "avg_salary": 140086},
+    {"company": "Micron Technology", "filings": 4, "avg_salary": 131144},
+    {"company": "Intuitive Surgical", "filings": 5, "avg_salary": 152051},
+    {"company": "Waymo", "filings": 8, "avg_salary": 218875},
+
+    # Biotech / Pharma (verified)
+    {"company": "Genentech", "filings": 4, "avg_salary": 168235},
+    {"company": "Takeda", "filings": 4, "avg_salary": 149940},
+    {"company": "Amgen", "filings": 4, "avg_salary": 113020},
+
+    # Defense / Research
+    {"company": "Battelle Memorial Institute", "filings": 10, "avg_salary": 133062},
+    {"company": "Booz Allen Hamilton", "filings": 2, "avg_salary": 117861},
+
+    # Consulting (verified DS LCAs)
+    {"company": "Analysis Group", "filings": 2, "avg_salary": 110000},
+    {"company": "Point72", "filings": 5, "avg_salary": 179848},
+
+    # Misc verified
+    {"company": "Asurion", "filings": 1, "avg_salary": 155000},
+    {"company": "CCC Intelligent Solutions", "filings": 2, "avg_salary": 96190},
+    {"company": "UT Southwestern Medical Center", "filings": 2, "avg_salary": 84708},
 ]
 
 

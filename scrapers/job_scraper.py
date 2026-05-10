@@ -855,13 +855,34 @@ def run_all_scrapers(progress_cb: Optional[ProgressCallback] = None) -> list[Job
     print(f"📋 After title filtering: {len(all_jobs)} relevant jobs")
     _emit_progress(progress_cb, "Filtering for relevant roles", len(all_jobs))
 
-    # Deduplicate across all sources
+    # Deduplicate across all sources by job_hash
     seen = set()
     unique = []
     for job in all_jobs:
         if job.job_hash not in seen:
             seen.add(job.job_hash)
             unique.append(job)
+
+    # Secondary dedup: same company + near-identical title = repost
+    # Normalize title by stripping level indicators and punctuation
+    def _norm_title(t: str) -> str:
+        t = t.lower()
+        for strip in ["i", "ii", "iii", "iv", "1", "2", "3", "sr.", "sr", "senior", "junior", "jr", "jr."]:
+            t = re.sub(rf'\b{re.escape(strip)}\b', '', t)
+        return re.sub(r'[^a-z0-9 ]', '', t).strip()
+
+    seen_company_title = set()
+    deduped = []
+    for job in unique:
+        key = (job.company.lower().strip(), _norm_title(job.title))
+        if key not in seen_company_title:
+            seen_company_title.add(key)
+            deduped.append(job)
+
+    removed = len(unique) - len(deduped)
+    if removed:
+        print(f"🔁 Removed {removed} reposted jobs (same company+title)")
+    unique = deduped
 
     print(f"\n📊 Total: {len(all_jobs)} scraped → {len(unique)} unique jobs")
     _emit_progress(progress_cb, "Deduplicated scraped jobs", len(unique))

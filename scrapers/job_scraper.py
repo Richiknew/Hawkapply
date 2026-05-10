@@ -864,12 +864,15 @@ def run_all_scrapers(progress_cb: Optional[ProgressCallback] = None) -> list[Job
             unique.append(job)
 
     # Secondary dedup: same company + near-identical title = repost
-    # Normalize title by stripping level indicators and punctuation
+    # Sort newest-first so we keep the most recent posting when deduping
     def _norm_title(t: str) -> str:
         t = t.lower()
         for strip in ["i", "ii", "iii", "iv", "1", "2", "3", "sr.", "sr", "senior", "junior", "jr", "jr."]:
             t = re.sub(rf'\b{re.escape(strip)}\b', '', t)
         return re.sub(r'[^a-z0-9 ]', '', t).strip()
+
+    from datetime import timezone
+    unique.sort(key=lambda j: j.posted_date or datetime.min, reverse=True)
 
     seen_company_title = set()
     deduped = []
@@ -878,6 +881,14 @@ def run_all_scrapers(progress_cb: Optional[ProgressCallback] = None) -> list[Job
         if key not in seen_company_title:
             seen_company_title.add(key)
             deduped.append(job)
+        # If same company+title seen before but this one is from a different day
+        # (genuinely new posting), keep it too
+        else:
+            existing = next(j for j in deduped if
+                (j.company.lower().strip(), _norm_title(j.title)) == key)
+            if (existing.posted_date and job.posted_date and
+                    abs((existing.posted_date - job.posted_date).days) >= 7):
+                deduped.append(job)
 
     removed = len(unique) - len(deduped)
     if removed:

@@ -63,9 +63,9 @@ def _is_us_remote(location: str) -> bool:
 
 def _date_window_days() -> int:
     try:
-        days = int(settings.POSTED_WITHIN_DAYS or 2)
+        days = int(settings.POSTED_WITHIN_DAYS or 7)
     except (TypeError, ValueError):
-        return 2
+        return 7
     return min(max(days, 1), 7)
 
 
@@ -84,7 +84,7 @@ def _linkedin_time_range_param() -> Optional[str]:
 def _is_within_posted_window(posted_date: Optional[datetime]) -> bool:
     days = _date_window_days()
     if not posted_date:
-        return False
+        return True  # unknown date → keep, don't silently drop
     cutoff_date = datetime.now().date() - timedelta(days=days - 1)
     return posted_date.date() >= cutoff_date
 
@@ -632,6 +632,126 @@ def scrape_jobicy() -> list[Job]:
         time.sleep(1)
 
     return jobs
+
+
+# ──────────────────────────────────────────────────
+# Source 9: Himalayas (visa sponsorship filter built-in!)
+# ──────────────────────────────────────────────────
+
+def scrape_himalayas() -> list[Job]:
+    """Free API, no auth. Filters for visa sponsorship jobs."""
+    jobs = []
+    print("  📡 Himalayas: visa-sponsored DS jobs...")
+    ds_queries = ["data scientist", "machine learning", "data science", "ml engineer"]
+
+    for query in ds_queries:
+        try:
+            resp = requests.get(
+                "https://himalayas.app/jobs/api",
+                params={"q": query, "limit": 100},
+                timeout=15,
+                headers={"User-Agent": settings.USER_AGENT},
+            )
+            if resp.status_code != 200:
+                continue
+            data = resp.json()
+            for item in data.get("jobs", []):
+                location = item.get("location", "") or ""
+                if not _is_us_remote(location):
+                    continue
+                title = item.get("title", "")
+                description = item.get("description", "") or ""
+                sponsors = item.get("visaSponsorship", False) or detect_sponsorship(description)
+                salary_text = item.get("salary", "") or ""
+                salary_min, salary_max = parse_salary(salary_text)
+                job = Job(
+                    title=title,
+                    company=item.get("companyName", "Unknown"),
+                    location=location or "Remote",
+                    source="himalayas",
+                    url=item.get("url", "") or item.get("applyUrl", ""),
+                    description=description[:2000],
+                    salary_min=salary_min,
+                    salary_max=salary_max,
+                    posted_date=_parse_date(item.get("createdAt")),
+                    sponsors_h1b=sponsors,
+                )
+                if job.title:
+                    jobs.append(job)
+        except Exception as e:
+            print(f"  ⚠️  Himalayas failed for '{query}': {e}")
+        time.sleep(1)
+
+    return jobs
+
+
+# ──────────────────────────────────────────────────
+# Source 10: The Muse (free public API, no auth)
+# ──────────────────────────────────────────────────
+
+def scrape_the_muse() -> list[Job]:
+    """Free public API, 500 req/day, no auth needed."""
+    jobs = []
+    print("  📡 The Muse: data science jobs...")
+    ds_categories = ["Data Science", "Data + Analytics"]
+
+    for category in ds_categories:
+        for page in range(1, 4):
+            try:
+                resp = requests.get(
+                    "https://www.themuse.com/api/public/jobs",
+                    params={
+                        "category": category,
+                        "page": page,
+                        "descended": "true",
+                    },
+                    timeout=15,
+                    headers={"User-Agent": settings.USER_AGENT},
+                )
+                if resp.status_code != 200:
+                    break
+                data = resp.json()
+                results = data.get("results", [])
+                if not results:
+                    break
+
+                for item in results:
+                    # Location filter
+                    locations = item.get("locations", [])
+                    location_names = [loc.get("name", "") for loc in locations]
+                    location_str = ", ".join(location_names) if location_names else "Remote"
+                    if location_names and not any(_is_us_remote(l) for l in location_names):
+                        continue
+
+                    title = item.get("name", "")
+                    company = item.get("company", {}).get("name", "Unknown")
+                    url = item.get("refs", {}).get("landing_page", "")
+                    contents = item.get("contents", "")
+                    description = re.sub(r"<[^>]+>", " ", contents)[:2000]
+                    sponsors = detect_sponsorship(description)
+                    published = item.get("publication_date", "")
+
+                    job = Job(
+                        title=title,
+                        company=company,
+                        location=location_str,
+                        source="themuse",
+                        url=url,
+                        description=description,
+                        posted_date=_parse_date(published),
+                        sponsors_h1b=sponsors,
+                    )
+                    if job.title:
+                        jobs.append(job)
+
+            except Exception as e:
+                print(f"  ⚠️  The Muse failed page {page} for '{category}': {e}")
+                break
+            time.sleep(1)
+
+    return jobs
+
+
 # ──────────────────────────────────────────────────
 # Utilities
 # ──────────────────────────────────────────────────
@@ -790,6 +910,18 @@ def run_all_scrapers(progress_cb: Optional[ProgressCallback] = None) -> list[Job
     print(f"  ✅ Jobicy: {len(jobicy_jobs)} remote DS jobs (USA)")
     _emit_progress(progress_cb, "Scraping Jobicy", len(all_jobs))
 
+    # Source 9: Himalayas (visa sponsorship filter built-in)
+    himalayas_jobs = scrape_himalayas()
+    all_jobs.extend(himalayas_jobs)
+    print(f"  ✅ Himalayas: {len(himalayas_jobs)} visa-sponsored DS jobs")
+    _emit_progress(progress_cb, "Scraping Himalayas", len(all_jobs))
+
+    # Source 10: The Muse (free public API)
+    muse_jobs = scrape_the_muse()
+    all_jobs.extend(muse_jobs)
+    print(f"  ✅ The Muse: {len(muse_jobs)} DS/analytics jobs")
+    _emit_progress(progress_cb, "Scraping The Muse", len(all_jobs))
+
     if _date_window_days() > 0:
         all_jobs = [j for j in all_jobs if _is_within_posted_window(j.posted_date)]
         _emit_progress(
@@ -821,29 +953,51 @@ def run_all_scrapers(progress_cb: Optional[ProgressCallback] = None) -> list[Job
         "ts/sci", "top secret", "secret clearance", "security clearance",
         "clearance required", "public trust", "polygraph", "poly required",
         "sci clearance", "active clearance", "dod clearance",
-        # Citizenship
+        # No sponsorship — explicit rejections
+        "no sponsorship", "not sponsor", "cannot sponsor",
+        "will not sponsor", "unable to sponsor", "without sponsorship",
+        "does not sponsor", "do not sponsor", "not able to sponsor",
+        "not in a position to sponsor", "sponsorship is not available",
+        "sponsorship not available", "sponsorship not provided",
+        "visa sponsorship is not", "visa sponsorship will not",
+        "employment-based sponsorship not",
+        # OPT / CPT specific rejections
+        "no opt", "no cpt", "no opt/cpt", "no opt, cpt",
+        "opt not", "cpt not", "opt/cpt not",
+        "opt candidates not", "cpt candidates not",
+        "not accepting opt", "not accepting cpt",
+        "opt is not", "cpt is not",
+        # H1B / visa specific rejections
+        "no h1b", "no h-1b", "no h1-b", "no visa",
+        "h1b not", "h-1b not", "h1b transfer not",
+        "no visa transfer", "visa transfers not",
+        # Citizenship / PR only
         "us citizen", "u.s. citizen", "citizenship required",
-        "must be a citizen", "citizens only", "permanent resident only",
-        "green card required", "no sponsorship", "not sponsor",
-        "cannot sponsor", "will not sponsor", "unable to sponsor",
-        "without sponsorship", "no visa", "no h1b", "no h-1b",
+        "must be a citizen", "citizens only",
+        "permanent resident only", "green card required",
+        "must be a us", "must be a u.s.",
         # PhD/Intern
         "phd required", "ph.d. required", "doctoral degree required",
         "internship program", "intern position", "summer intern",
         "new grad program", "co-op program",
-        # # Too senior
-        # "10+ years", "12+ years", "15+ years", "8+ years of experience",
-        # "10 years of experience", "12 years of experience",
         # Government/defense only
         "government contractor only", "federal employee",
         "military experience required",
     ]
     def _too_senior(text: str) -> bool:
-        """Check if JD requires 7+ years of experience."""
-        matches = re.findall(r'(\d+)\+?\s*(?:years|yrs)', text.lower())
-        for m in matches:
-            if int(m) >= 7:
-                return True
+        """Check if JD explicitly requires 7+ years of experience."""
+        patterns = [
+            r'(\d+)\+\s*years?\s+of\s+(?:experience|exp)',
+            r'(\d+)\+\s*yrs?\s+(?:of\s+)?(?:experience|exp)',
+            r'minimum\s+(?:of\s+)?(\d+)\s+years?\s+(?:of\s+)?(?:experience|exp)',
+            r'at\s+least\s+(\d+)\s+years?\s+(?:of\s+)?(?:experience|exp)',
+            r'(\d+)\s*[-–]\s*\d+\s+years?\s+of\s+experience',
+            r'requires?\s+(\d+)\+?\s+years?\s+(?:of\s+)?(?:experience|exp)',
+        ]
+        for pat in patterns:
+            for m in re.findall(pat, text.lower()):
+                if int(m) >= 7:
+                    return True
         return False
     all_jobs = [
         j for j in all_jobs

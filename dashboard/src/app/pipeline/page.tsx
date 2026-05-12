@@ -65,7 +65,7 @@ const POSTED_WINDOW_OPTIONS = [
 ] as const;
 
 function formatPostedWindow(days: number) {
-  return POSTED_WINDOW_OPTIONS.find((option) => Number(option.value) === days)?.label ?? "Last 2 days";
+  return POSTED_WINDOW_OPTIONS.find((option) => Number(option.value) === days)?.label ?? "Last 7 days";
 }
 
 // ── Filters summary panel ─────────────────────────────────────────────────────
@@ -487,7 +487,7 @@ export default function PipelinePage() {
   const [targetRolesText, setTargetRolesText] = useState("");
   const [locationsText, setLocationsText] = useState("");
   const [minSalary, setMinSalary] = useState("");
-  const [postedWithinDays, setPostedWithinDays] = useState("2");
+  const [postedWithinDays, setPostedWithinDays] = useState("7");
   const [minH1bFilings, setMinH1bFilings] = useState("");
   const [requireSponsorship, setRequireSponsorship] = useState(true);
 
@@ -502,7 +502,7 @@ export default function PipelinePage() {
     setTargetRolesText(config.target_roles.join("\n"));
     setLocationsText(config.locations.join("\n"));
     setMinSalary(String(config.min_salary));
-    setPostedWithinDays(String(config.posted_within_days || 2));
+    setPostedWithinDays(String(config.posted_within_days || 7));
     setMinH1bFilings(String(config.min_h1b_filings));
     setRequireSponsorship(config.require_sponsorship);
   }, [config]);
@@ -580,7 +580,7 @@ export default function PipelinePage() {
         target_roles: parseListInput(targetRolesText),
         locations: parseListInput(locationsText),
         min_salary: Number(minSalary || 0),
-        posted_within_days: Number(postedWithinDays || 2),
+        posted_within_days: Number(postedWithinDays || 7),
         min_h1b_filings: Number(minH1bFilings || 0),
         require_sponsorship: requireSponsorship,
       }),
@@ -588,7 +588,7 @@ export default function PipelinePage() {
       setTargetRolesText(updated.target_roles.join("\n"));
       setLocationsText(updated.locations.join("\n"));
       setMinSalary(String(updated.min_salary));
-      setPostedWithinDays(String(updated.posted_within_days || 2));
+      setPostedWithinDays(String(updated.posted_within_days || 7));
       setMinH1bFilings(String(updated.min_h1b_filings));
       setRequireSponsorship(updated.require_sponsorship);
       await refetchConfig();
@@ -692,7 +692,7 @@ export default function PipelinePage() {
                 <Label htmlFor="posted-within-days">Posted within (days)</Label>
                 <Select
                   value={postedWithinDays}
-                  onValueChange={(value) => setPostedWithinDays(value ?? "2")}
+                  onValueChange={(value) => setPostedWithinDays(value ?? "7")}
                 >
                   <SelectTrigger id="posted-within-days">
                     <SelectValue placeholder="Select date range" />
@@ -748,7 +748,7 @@ export default function PipelinePage() {
                   target_roles: parseListInput(targetRolesText),
                   locations: parseListInput(locationsText),
                   min_salary: Number(minSalary || 0),
-                  posted_within_days: Number(postedWithinDays || 2),
+                  posted_within_days: Number(postedWithinDays || 7),
                   min_h1b_filings: Number(minH1bFilings || 0),
                   require_sponsorship: requireSponsorship,
                 }}
@@ -767,7 +767,7 @@ export default function PipelinePage() {
                     setTargetRolesText(config.target_roles.join("\n"));
                     setLocationsText(config.locations.join("\n"));
                     setMinSalary(String(config.min_salary));
-                    setPostedWithinDays(String(config.posted_within_days || 2));
+                    setPostedWithinDays(String(config.posted_within_days || 7));
                     setMinH1bFilings(String(config.min_h1b_filings));
                     setRequireSponsorship(config.require_sponsorship);
                   }}
